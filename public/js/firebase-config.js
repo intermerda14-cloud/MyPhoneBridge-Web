@@ -8,7 +8,7 @@ const firebaseConfig = {
     projectId: "myphonebridge",
     storageBucket: "myphonebridge.firebasestorage.app",
     messagingSenderId: "815562719889",
-    appId: "1:815562719889:web:3720c27fd1d68d10bab530"  // ⚠️ Replace with your actual web app ID
+    appId: "1:815562719889:web:YOUR_WEB_APP_ID"  // ⚠️ Replace with your actual web app ID
 };
 
 // Initialize Firebase

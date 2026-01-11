@@ -479,7 +479,18 @@ function showCommandResult(result) {
     const resultEl = document.getElementById('commandResult');
     const resultText = document.getElementById('commandResultText');
     
-    resultText.textContent = JSON.stringify(result, null, 2);
+    // Special handling for location result with maps link
+    if (result.mapsUrl) {
+        const formatted = JSON.stringify(result, null, 2);
+        const linkified = formatted.replace(
+            /"mapsUrl": "(.*?)"/,
+            '"mapsUrl": "<a href=\\"$1\\" target=\\"_blank\\" class=\\"text-primary\\">Open in Google Maps</a>"'
+        );
+        resultText.innerHTML = linkified;
+    } else {
+        resultText.textContent = JSON.stringify(result, null, 2);
+    }
+    
     resultEl.classList.remove('d-none');
 }
 
