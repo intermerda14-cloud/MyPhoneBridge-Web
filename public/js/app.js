@@ -481,12 +481,16 @@ function showCommandResult(result) {
     
     // Special handling for location result with maps link
     if (result.mapsUrl) {
-        const formatted = JSON.stringify(result, null, 2);
-        const linkified = formatted.replace(
-            /"mapsUrl": "(.*?)"/,
-            '"mapsUrl": "<a href=\\"$1\\" target=\\"_blank\\" class=\\"text-primary\\">Open in Google Maps</a>"'
-        );
-        resultText.innerHTML = linkified;
+        const { mapsUrl, ...rest } = result;
+        
+        // Create formatted output
+        let output = '{\n';
+        for (const [key, value] of Object.entries(rest)) {
+            output += `  "${key}": ${typeof value === 'string' ? '"' + value + '"' : value},\n`;
+        }
+        output += `  "mapsUrl": `;
+        
+        resultText.innerHTML = output + `<a href="${mapsUrl}" target="_blank" class="text-primary text-decoration-underline">${mapsUrl}</a>\n}`;
     } else {
         resultText.textContent = JSON.stringify(result, null, 2);
     }
