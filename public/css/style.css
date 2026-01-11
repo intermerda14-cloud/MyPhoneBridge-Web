@@ -1,0 +1,97 @@
+body {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    min-height: 100vh;
+    padding-bottom: 50px;
+}
+
+.card {
+    border: none;
+    border-radius: 15px;
+}
+
+.card-body {
+    padding: 2rem;
+}
+
+.badge {
+    padding: 0.5rem 1rem;
+    font-size: 0.9rem;
+}
+
+.bg-online {
+    background-color: #28a745 !important;
+}
+
+.bg-offline {
+    background-color: #dc3545 !important;
+}
+
+#pairingCodeInput {
+    border: 2px solid #dee2e6;
+    border-radius: 10px;
+    transition: all 0.3s;
+}
+
+#pairingCodeInput:focus {
+    border-color: #667eea;
+    box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border: none;
+    border-radius: 10px;
+    padding: 0.75rem;
+    font-weight: 600;
+    transition: transform 0.2s;
+}
+
+.btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+}
+
+.btn-primary:active {
+    transform: translateY(0);
+}
+
+h1.display-4 {
+    color: white;
+    font-weight: bold;
+}
+
+.text-center > .text-muted {
+    color: rgba(255, 255, 255, 0.8) !important;
+}
+
+/* Animation */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.card {
+    animation: fadeIn 0.5s ease-out;
+}
+
+/* Form inputs */
+.form-control {
+    border-radius: 8px;
+    padding: 0.75rem;
+}
+
+.form-control:focus {
+    border-color: #667eea;
+    box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
+}
+
+.form-label {
+    font-weight: 500;
+    color: #495057;
+}

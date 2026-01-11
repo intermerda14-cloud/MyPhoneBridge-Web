@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MyPhoneBridge - Dashboard</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="container mt-5">
+        <div class="row justify-content-center">
+            <div class="col-md-8">
+                
+                <!-- Header -->
+                <div class="text-center mb-5">
+                    <h1 class="display-4">📱 MyPhoneBridge</h1>
+                    <p class="text-muted">Remote Access Dashboard</p>
+                </div>
+
+                <!-- Login Section -->
+                <div id="loginSection" class="card shadow-sm mb-4">
+                    <div class="card-body p-5">
+                        <h3 class="card-title text-center mb-4">Sign In</h3>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Email</label>
+                            <input type="email" id="loginEmail" class="form-control" placeholder="your@email.com">
+                        </div>
+                        
+                        <div class="mb-4">
+                            <label class="form-label">Password</label>
+                            <input type="password" id="loginPassword" class="form-control" placeholder="Password">
+                        </div>
+
+                        <button id="btnLogin" class="btn btn-primary btn-lg w-100 mb-3">
+                            <span id="btnLoginText">Sign In</span>
+                            <span id="btnLoginSpinner" class="spinner-border spinner-border-sm ms-2 d-none"></span>
+                        </button>
+
+                        <div id="loginError" class="alert alert-danger d-none mt-3" role="alert"></div>
+                    </div>
+                </div>
+
+                <!-- Pairing Section -->
+                <div id="pairingSection" class="card shadow-sm d-none">
+                    <div class="card-body p-5">
+                        <div class="d-flex justify-content-between align-items-center mb-4">
+                            <h3 class="card-title mb-0">Enter Pairing Code</h3>
+                            <button id="btnSignOut" class="btn btn-sm btn-outline-danger">Sign Out</button>
+                        </div>
+                        
+                        <p class="text-center text-muted mb-4">
+                            Signed in as: <strong id="userEmail">-</strong>
+                        </p>
+                        
+                        <p class="text-center mb-4">
+                            Open the app on your Android device and generate a 6-digit pairing code
+                        </p>
+                        
+                        <div class="mb-4">
+                            <input type="text" 
+                                   id="pairingCodeInput" 
+                                   class="form-control form-control-lg text-center" 
+                                   placeholder="000000"
+                                   maxlength="6"
+                                   style="font-size: 2rem; letter-spacing: 0.5rem; font-family: monospace;">
+                        </div>
+
+                        <button id="btnPair" class="btn btn-primary btn-lg w-100 mb-3">
+                            <span id="btnPairText">Pair Device</span>
+                            <span id="btnPairSpinner" class="spinner-border spinner-border-sm ms-2 d-none"></span>
+                        </button>
+
+                        <div id="pairingError" class="alert alert-danger d-none" role="alert"></div>
+                    </div>
+                </div>
+
+                <!-- Dashboard Section -->
+                <div id="dashboardSection" class="d-none">
+                    
+                    <!-- Device Status Card -->
+                    <div class="card shadow-sm mb-4">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <h5 class="card-title mb-0">Device Status</h5>
+                                <button id="btnUnpair" class="btn btn-sm btn-outline-danger">Unpair</button>
+                            </div>
+                            <hr>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <p><strong>Status:</strong> <span id="deviceStatus" class="badge bg-secondary">Unknown</span></p>
+                                    <p><strong>User:</strong> <span id="dashboardUserEmail" class="text-muted">-</span></p>
+                                </div>
+                                <div class="col-md-6">
+                                    <p><strong>Device Name:</strong> <span id="deviceName">-</span></p>
+                                    <p><strong>Last Online:</strong> <span id="lastOnline">-</span></p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Remote Control -->
+                    <div class="card shadow-sm">
+                        <div class="card-body">
+                            <h5 class="card-title">Remote Control</h5>
+                            <hr>
+                            
+                            <div class="row g-3">
+                                <!-- Ring Phone -->
+                                <div class="col-md-4">
+                                    <button id="btnRingPhone" class="btn btn-danger w-100">
+                                        <i class="bi bi-bell-fill"></i>
+                                        <span class="d-block mt-2">Ring Phone</span>
+                                    </button>
+                                </div>
+                                
+                                <!-- Get Location -->
+                                <div class="col-md-4">
+                                    <button id="btnGetLocation" class="btn btn-primary w-100">
+                                        <i class="bi bi-geo-alt-fill"></i>
+                                        <span class="d-block mt-2">Get Location</span>
+                                    </button>
+                                </div>
+                                
+                                <!-- Open URL -->
+                                <div class="col-md-4">
+                                    <button id="btnOpenUrl" class="btn btn-success w-100">
+                                        <i class="bi bi-link-45deg"></i>
+                                        <span class="d-block mt-2">Open URL</span>
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            <!-- Command Result -->
+                            <div id="commandResult" class="mt-4 d-none">
+                                <h6>Command Result:</h6>
+                                <pre id="commandResultText" class="bg-light p-3 rounded"></pre>
+                            </div>
+                            
+                            <!-- Command Status -->
+                            <div id="commandStatus" class="alert alert-info mt-3 d-none" role="alert"></div>
+                        </div>
+                    </div>
+
+                    <!-- Open URL Modal -->
+                    <div class="modal fade" id="urlModal" tabindex="-1">
+                        <div class="modal-dialog">
+                            <div class="modal-content">
+                                <div class="modal-header">
+                                    <h5 class="modal-title">Open URL on Device</h5>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                </div>
+                                <div class="modal-body">
+                                    <label class="form-label">Enter URL:</label>
+                                    <input type="url" id="urlInput" class="form-control" placeholder="https://example.com">
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                                    <button type="button" id="btnSendUrl" class="btn btn-success">Open</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+
+    <!-- Custom JS -->
+    <script src="js/firebase-config.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
