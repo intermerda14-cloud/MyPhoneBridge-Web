@@ -59,6 +59,9 @@ function setupEventListeners() {
     // Login button
     btnLogin.addEventListener('click', signIn);
 
+    // Google Sign-In button
+    document.getElementById('btnGoogleLogin')?.addEventListener('click', signInWithGoogle);
+
     // Sign out button
     btnSignOut.addEventListener('click', signOut);
 
@@ -102,6 +105,26 @@ async function signIn() {
         console.error('Login error:', error);
         showLoginError(getErrorMessage(error.code));
         setLoginLoading(false);
+    }
+}
+
+// Sign in with Google
+async function signInWithGoogle() {
+    loginError.classList.add('d-none');
+    
+    try {
+        const provider = new firebase.auth.GoogleAuthProvider();
+        await auth.signInWithPopup(provider);
+        // onAuthStateChanged will handle the rest
+    } catch (error) {
+        console.error('Google sign-in error:', error);
+        
+        // Handle popup closed by user
+        if (error.code === 'auth/popup-closed-by-user' || error.code === 'auth/cancelled-popup-request') {
+            return; // Don't show error, user just cancelled
+        }
+        
+        showLoginError(getErrorMessage(error.code));
     }
 }
 
