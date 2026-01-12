@@ -282,9 +282,15 @@
             <div class="p-5 text-center">
                 <h1 class="display-1 fw-bold mb-3" id="displayPairCode">------</h1>
                 <p class="lead mb-4">Enter this code in your Android app</p>
-                <button id="btnRefreshCode" class="btn btn-outline-primary">
-                    <i class="bi bi-arrow-clockwise"></i> Refresh Code
-                </button>
+                <div class="d-flex gap-2 justify-content-center">
+                    <button id="btnRefreshCode" class="btn btn-outline-primary">
+                        <i class="bi bi-arrow-clockwise"></i> Refresh Code
+                    </button>
+                    <button id="btnSkipPairing" class="btn btn-success">
+                        <i class="bi bi-check-circle"></i> Already Paired? Skip
+                    </button>
+                </div>
+                <p class="text-muted mt-3 small">If you've already paired your device, click "Skip" to go directly to dashboard</p>
             </div>
         </div>
     </div>

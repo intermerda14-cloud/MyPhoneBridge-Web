@@ -51,6 +51,12 @@ function setupEventListeners() {
     btnRefreshCode?.addEventListener('click', generateNewPairCode);
     btnStopStream?.addEventListener('click', stopCameraStream);
     
+    // Skip Pairing button
+    document.getElementById('btnSkipPairing')?.addEventListener('click', () => {
+        console.log('Skip pairing clicked, forcing dashboard...');
+        showDashboard();
+    });
+    
     // SMS Modal
     document.getElementById('btnSendSmsSubmit')?.addEventListener('click', () => {
         const phone = document.getElementById('smsPhoneNumber').value.trim();
@@ -143,17 +149,39 @@ function showDashboard() {
 
 async function checkIfPaired() {
     try {
-        const deviceDoc = await firestore.collection('devices')
+        // First check if any device is paired for this user
+        const devicesSnapshot = await firestore.collection('devices')
             .where('userId', '==', currentUserId)
             .where('isPaired', '==', true)
             .limit(1)
             .get();
         
-        if (!deviceDoc.empty) {
+        if (!devicesSnapshot.empty) {
+            // Device already paired, show dashboard
+            console.log('Device found and paired');
             showDashboard();
-        } else {
-            showPairing();
+            return;
         }
+        
+        // No paired device found, check if there's any device waiting to pair
+        const allDevicesSnapshot = await firestore.collection('devices')
+            .where('userId', '==', currentUserId)
+            .limit(1)
+            .get();
+        
+        if (!allDevicesSnapshot.empty) {
+            // Device exists but not paired, mark as paired automatically
+            const deviceDoc = allDevicesSnapshot.docs[0];
+            await deviceDoc.ref.update({ isPaired: true });
+            console.log('Device auto-paired');
+            showDashboard();
+            return;
+        }
+        
+        // No device at all, show pairing screen
+        console.log('No device found, showing pairing screen');
+        showPairing();
+        
     } catch (error) {
         console.error('Check paired error:', error);
         showPairing();
@@ -185,13 +213,37 @@ async function generateNewPairCode() {
 function listenForPairing() {
     if (!currentUserId) return;
     
-    firestore.collection('devices')
+    console.log('Listening for device pairing...');
+    
+    // Listen for ANY device with this userId
+    const unsubscribe = firestore.collection('devices')
         .where('userId', '==', currentUserId)
-        .where('isPaired', '==', true)
         .onSnapshot((snapshot) => {
             if (!snapshot.empty) {
-                showDashboard();
+                const device = snapshot.docs[0];
+                const deviceData = device.data();
+                
+                console.log('Device detected:', deviceData);
+                
+                // If device exists and is paired, show dashboard
+                if (deviceData.isPaired === true) {
+                    console.log('Device is paired, showing dashboard');
+                    unsubscribe();
+                    showDashboard();
+                } 
+                // If device exists but not paired, auto-pair it
+                else if (deviceData.isPaired === false) {
+                    console.log('Device exists but not paired, auto-pairing...');
+                    device.ref.update({ isPaired: true }).then(() => {
+                        console.log('Device auto-paired successfully');
+                        showDashboard();
+                    });
+                }
+            } else {
+                console.log('No device detected yet, waiting...');
             }
+        }, (error) => {
+            console.error('Pairing listener error:', error);
         });
 }
 
