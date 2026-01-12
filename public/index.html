@@ -3,270 +3,330 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MyPhoneBridge - Dashboard</title>
+    <title>MyPhoneBridge - Remote Desktop</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
-    <link rel="stylesheet" href="css/style.css">
+    <style>
+        body {
+            background: #f8f9fa;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+        }
+        
+        .desktop-bg {
+            min-height: 100vh;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px;
+        }
+        
+        .desktop-window {
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            overflow: hidden;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        
+        .title-bar {
+            background: linear-gradient(to right, #667eea, #764ba2);
+            color: white;
+            padding: 15px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .feature-grid {
+            padding: 30px;
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+            gap: 20px;
+        }
+        
+        .feature-card {
+            background: white;
+            border: 2px solid #e9ecef;
+            border-radius: 15px;
+            padding: 20px;
+            text-align: center;
+            transition: all 0.3s;
+            cursor: pointer;
+        }
+        
+        .feature-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            border-color: #667eea;
+        }
+        
+        .feature-icon {
+            width: 80px;
+            height: 80px;
+            margin: 0 auto 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            font-size: 2.5rem;
+        }
+        
+        .feature-title {
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 5px;
+        }
+        
+        .feature-subtitle {
+            font-size: 11px;
+            color: #6c757d;
+        }
+        
+        .status-bar {
+            background: #f8f9fa;
+            padding: 15px 20px;
+            border-top: 1px solid #dee2e6;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .result-panel {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px;
+            display: none;
+        }
+        
+        .result-panel.show {
+            display: block;
+        }
+        
+        .stream-panel {
+            background: #000;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px;
+            display: none;
+        }
+        
+        .stream-panel.show {
+            display: block;
+        }
+        
+        .login-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.8);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+        }
+        
+        .login-box {
+            background: white;
+            border-radius: 15px;
+            padding: 40px;
+            max-width: 400px;
+            width: 90%;
+        }
+    </style>
 </head>
 <body>
-    <div class="container mt-5">
-        <div class="row justify-content-center">
-            <div class="col-md-8">
-                
-                <!-- Header -->
-                <div class="text-center mb-5">
-                    <h1 class="display-4">📱 MyPhoneBridge</h1>
-                    <p class="text-muted">Remote Access Dashboard</p>
+    <!-- Login Overlay -->
+    <div id="loginOverlay" class="login-overlay">
+        <div class="login-box">
+            <h3 class="text-center mb-4">📱 MyPhoneBridge</h3>
+            <div class="mb-3">
+                <input type="email" id="loginEmail" class="form-control" placeholder="Email">
+            </div>
+            <div class="mb-3">
+                <input type="password" id="loginPassword" class="form-control" placeholder="Password">
+            </div>
+            <button id="btnLogin" class="btn btn-primary w-100 mb-3">Sign In</button>
+            <button id="btnGoogleLogin" class="btn btn-outline-dark w-100">
+                <i class="bi bi-google"></i> Sign in with Google
+            </button>
+            <div id="loginError" class="alert alert-danger d-none mt-3"></div>
+        </div>
+    </div>
+
+    <!-- Desktop Interface -->
+    <div id="dashboardSection" class="desktop-bg d-none">
+        <div class="desktop-window">
+            <!-- Title Bar -->
+            <div class="title-bar">
+                <div>
+                    <h5 class="mb-0">📱 MyPhoneBridge Remote Desktop</h5>
+                    <small class="opacity-75">Control your Android device remotely</small>
+                </div>
+                <div class="d-flex align-items-center gap-3">
+                    <div id="deviceStatus" class="d-flex align-items-center gap-2">
+                        <span class="badge bg-success"><i class="bi bi-circle-fill"></i> Connected</span>
+                        <span id="batteryStatus">--</span>
+                    </div>
+                    <button id="btnSignOut" class="btn btn-sm btn-light"><i class="bi bi-box-arrow-right"></i></button>
+                </div>
+            </div>
+
+            <!-- Camera Stream Panel -->
+            <div id="streamPanel" class="stream-panel">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <div class="text-white">
+                        <h6 class="mb-0">Live Camera Stream</h6>
+                        <small id="streamInfo" class="text-white-50">Connecting...</small>
+                    </div>
+                    <button id="btnStopStream" class="btn btn-sm btn-danger">Stop Stream</button>
+                </div>
+                <img id="cameraStreamImage" src="" class="img-fluid rounded" style="max-width:100%;">
+            </div>
+
+            <!-- Result Panel -->
+            <div id="resultPanel" class="result-panel">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h6 class="mb-0"><i class="bi bi-terminal"></i> Result</h6>
+                    <button class="btn btn-sm btn-close" onclick="document.getElementById('resultPanel').classList.remove('show')"></button>
+                </div>
+                <div id="resultContent"></div>
+            </div>
+
+            <!-- Feature Grid -->
+            <div class="feature-grid">
+                <div class="feature-card" onclick="ringPhone()">
+                    <div class="feature-icon bg-danger bg-opacity-10">
+                        <i class="bi bi-bell-fill text-danger"></i>
+                    </div>
+                    <div class="feature-title">Ring Phone</div>
+                    <div class="feature-subtitle">Find device</div>
                 </div>
 
-                <!-- Login Section -->
-                <div id="loginSection" class="card shadow-sm mb-4">
-                    <div class="card-body p-5">
-                        <h3 class="card-title text-center mb-4">Sign In</h3>
-                        
-                        <div class="mb-3">
-                            <label class="form-label">Email</label>
-                            <input type="email" id="loginEmail" class="form-control" placeholder="your@email.com">
-                        </div>
-                        
-                        <div class="mb-4">
-                            <label class="form-label">Password</label>
-                            <input type="password" id="loginPassword" class="form-control" placeholder="Password">
-                        </div>
-
-                        <button id="btnLogin" class="btn btn-primary btn-lg w-100 mb-3">
-                            <span id="btnLoginText">Sign In</span>
-                            <span id="btnLoginSpinner" class="spinner-border spinner-border-sm ms-2 d-none"></span>
-                        </button>
-
-                        <div class="text-center">
-                            <hr class="my-4">
-                            <button id="btnGoogleLogin" class="btn btn-outline-dark w-100">
-                                <svg width="18" height="18" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" class="me-2">
-                                    <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
-                                    <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
-                                    <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
-                                    <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
-                                </svg>
-                                Sign in with Google
-                            </button>
-                        </div>
-
-                        <div id="loginError" class="alert alert-danger d-none mt-3" role="alert"></div>
+                <div class="feature-card" onclick="getLocation()">
+                    <div class="feature-icon bg-primary bg-opacity-10">
+                        <i class="bi bi-geo-alt-fill text-primary"></i>
                     </div>
+                    <div class="feature-title">Location</div>
+                    <div class="feature-subtitle">Track device</div>
                 </div>
 
-                <!-- Pairing Section -->
-                <div id="pairingSection" class="card shadow-sm d-none">
-                    <div class="card-body p-5">
-                        <div class="d-flex justify-content-between align-items-center mb-4">
-                            <h3 class="card-title mb-0">Enter Pairing Code</h3>
-                            <button id="btnSignOut" class="btn btn-sm btn-outline-danger">Sign Out</button>
-                        </div>
-                        
-                        <p class="text-center text-muted mb-4">
-                            Signed in as: <strong id="userEmail">-</strong>
-                        </p>
-                        
-                        <p class="text-center mb-4">
-                            Open the app on your Android device and generate a 6-digit pairing code
-                        </p>
-                        
-                        <div class="mb-4">
-                            <input type="text" 
-                                   id="pairingCodeInput" 
-                                   class="form-control form-control-lg text-center" 
-                                   placeholder="000000"
-                                   maxlength="6"
-                                   style="font-size: 2rem; letter-spacing: 0.5rem; font-family: monospace;">
-                        </div>
-
-                        <button id="btnPair" class="btn btn-primary btn-lg w-100 mb-3">
-                            <span id="btnPairText">Pair Device</span>
-                            <span id="btnPairSpinner" class="spinner-border spinner-border-sm ms-2 d-none"></span>
-                        </button>
-
-                        <div id="pairingError" class="alert alert-danger d-none" role="alert"></div>
+                <div class="feature-card" onclick="startCamera()">
+                    <div class="feature-icon bg-purple bg-opacity-10">
+                        <i class="bi bi-camera-video-fill" style="color: #764ba2;"></i>
                     </div>
+                    <div class="feature-title">Camera</div>
+                    <div class="feature-subtitle">Live stream</div>
                 </div>
 
-                <!-- Dashboard Section -->
-                <div id="dashboardSection" class="d-none">
-                    
-                    <!-- Device Status Card -->
-                    <div class="card shadow-sm mb-4">
-                        <div class="card-body">
-                            <div class="d-flex justify-content-between align-items-center mb-3">
-                                <h5 class="card-title mb-0">Device Status</h5>
-                                <button id="btnUnpair" class="btn btn-sm btn-outline-danger">Unpair</button>
-                            </div>
-                            <hr>
-                            <div class="row">
-                                <div class="col-md-6">
-                                    <p><strong>Status:</strong> <span id="deviceStatus" class="badge bg-secondary">Unknown</span></p>
-                                    <p><strong>User:</strong> <span id="dashboardUserEmail" class="text-muted">-</span></p>
-                                </div>
-                                <div class="col-md-6">
-                                    <p><strong>Device Name:</strong> <span id="deviceName">-</span></p>
-                                    <p><strong>Last Online:</strong> <span id="lastOnline">-</span></p>
-                                </div>
-                            </div>
-                        </div>
+                <div class="feature-card" onclick="readMessages()">
+                    <div class="feature-icon bg-secondary bg-opacity-10">
+                        <i class="bi bi-envelope-fill text-secondary"></i>
                     </div>
-
-                    <!-- Remote Control -->
-                    <div class="card shadow-sm mb-4">
-                        <div class="card-body">
-                            <h5 class="card-title">Remote Control</h5>
-                            <hr>
-                            
-                            <div class="row g-3">
-                                <!-- Ring Phone -->
-                                <div class="col-md-4 col-6">
-                                    <button id="btnRingPhone" class="btn btn-danger w-100">
-                                        <i class="bi bi-bell-fill"></i>
-                                        <span class="d-block mt-2">Ring Phone</span>
-                                    </button>
-                                </div>
-                                
-                                <!-- Get Location -->
-                                <div class="col-md-4 col-6">
-                                    <button id="btnGetLocation" class="btn btn-primary w-100">
-                                        <i class="bi bi-geo-alt-fill"></i>
-                                        <span class="d-block mt-2">Get Location</span>
-                                    </button>
-                                </div>
-                                
-                                <!-- Open URL -->
-                                <div class="col-md-4 col-6">
-                                    <button id="btnOpenUrl" class="btn btn-success w-100">
-                                        <i class="bi bi-link-45deg"></i>
-                                        <span class="d-block mt-2">Open URL</span>
-                                    </button>
-                                </div>
-                                
-                                <!-- Send SMS -->
-                                <div class="col-md-4 col-6">
-                                    <button id="btnSendSms" class="btn btn-info w-100">
-                                        <i class="bi bi-chat-dots-fill"></i>
-                                        <span class="d-block mt-2">Send SMS</span>
-                                    </button>
-                                </div>
-                                
-                                <!-- Get Call Logs -->
-                                <div class="col-md-4 col-6">
-                                    <button id="btnGetCallLogs" class="btn btn-warning w-100">
-                                        <i class="bi bi-telephone-fill"></i>
-                                        <span class="d-block mt-2">Call Logs</span>
-                                    </button>
-                                </div>
-                                
-                                <!-- Get SMS -->
-                                <div class="col-md-4 col-6">
-                                    <button id="btnGetSms" class="btn btn-secondary w-100">
-                                        <i class="bi bi-envelope-fill"></i>
-                                        <span class="d-block mt-2">Read SMS</span>
-                                    </button>
-                                </div>
-                                
-                                <!-- Battery Info -->
-                                <div class="col-md-4 col-6">
-                                    <button id="btnBatteryInfo" class="btn btn-dark w-100">
-                                        <i class="bi bi-battery-charging"></i>
-                                        <span class="d-block mt-2">Battery Info</span>
-                                    </button>
-                                </div>
-                                
-                                <!-- Camera Stream -->
-                                <div class="col-md-4 col-6">
-                                    <button id="btnCameraStream" class="btn btn-purple w-100">
-                                        <i class="bi bi-camera-video-fill"></i>
-                                        <span class="d-block mt-2">Camera Stream</span>
-                                    </button>
-                                </div>
-                                
-                                <!-- File Manager -->
-                                <div class="col-md-4 col-6">
-                                    <button id="btnFileManager" class="btn btn-primary w-100">
-                                        <i class="bi bi-folder-fill"></i>
-                                        <span class="d-block mt-2">File Manager</span>
-                                    </button>
-                                </div>
-                            </div>
-                            
-                            <!-- Command Result -->
-                            <div id="commandResult" class="mt-4 d-none">
-                                <h6>Command Result:</h6>
-                                <pre id="commandResultText" class="bg-light p-3 rounded"></pre>
-                            </div>
-                            
-                            <!-- Command Status -->
-                            <div id="commandStatus" class="alert alert-info mt-3 d-none" role="alert"></div>
-                        </div>
-                    </div>
-                    
-                    <!-- Live Camera Stream -->
-                    <div id="cameraStreamCard" class="card shadow-sm mb-4 d-none">
-                        <div class="card-body">
-                            <div class="d-flex justify-content-between align-items-center mb-3">
-                                <h5 class="card-title mb-0">Live Camera Stream</h5>
-                                <button id="btnStopStream" class="btn btn-sm btn-danger">Stop Stream</button>
-                            </div>
-                            <div class="text-center">
-                                <img id="cameraStreamImage" src="" class="img-fluid rounded" style="max-width:100%; max-height:480px; background:#000;">
-                                <div id="streamInfo" class="mt-2 text-muted small">Waiting for frames...</div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Open URL Modal -->
-                    <div class="modal fade" id="urlModal" tabindex="-1">
-                        <div class="modal-dialog">
-                            <div class="modal-content">
-                                <div class="modal-header">
-                                    <h5 class="modal-title">Open URL on Device</h5>
-                                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                                </div>
-                                <div class="modal-body">
-                                    <label class="form-label">Enter URL:</label>
-                                    <input type="url" id="urlInput" class="form-control" placeholder="https://example.com">
-                                </div>
-                                <div class="modal-footer">
-                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                                    <button type="button" id="btnSendUrl" class="btn btn-success">Open</button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <!-- Send SMS Modal -->
-                    <div class="modal fade" id="smsModal" tabindex="-1">
-                        <div class="modal-dialog">
-                            <div class="modal-content">
-                                <div class="modal-header">
-                                    <h5 class="modal-title">Send SMS</h5>
-                                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                                </div>
-                                <div class="modal-body">
-                                    <div class="mb-3">
-                                        <label class="form-label">Phone Number:</label>
-                                        <input type="tel" id="smsPhoneNumber" class="form-control" placeholder="+628123456789">
-                                    </div>
-                                    <div class="mb-3">
-                                        <label class="form-label">Message:</label>
-                                        <textarea id="smsMessage" class="form-control" rows="4" placeholder="Type your message here..."></textarea>
-                                    </div>
-                                </div>
-                                <div class="modal-footer">
-                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                                    <button type="button" id="btnSendSmsSubmit" class="btn btn-info">Send SMS</button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
+                    <div class="feature-title">Messages</div>
+                    <div class="feature-subtitle">Read SMS</div>
                 </div>
 
+                <div class="feature-card" onclick="sendMessage()">
+                    <div class="feature-icon bg-info bg-opacity-10">
+                        <i class="bi bi-chat-dots-fill text-info"></i>
+                    </div>
+                    <div class="feature-title">Send SMS</div>
+                    <div class="feature-subtitle">New message</div>
+                </div>
+
+                <div class="feature-card" onclick="getCallLogs()">
+                    <div class="feature-icon bg-warning bg-opacity-10">
+                        <i class="bi bi-telephone-fill text-warning"></i>
+                    </div>
+                    <div class="feature-title">Call Logs</div>
+                    <div class="feature-subtitle">Recent calls</div>
+                </div>
+
+                <div class="feature-card" onclick="browseFiles()">
+                    <div class="feature-icon bg-success bg-opacity-10">
+                        <i class="bi bi-folder-fill text-success"></i>
+                    </div>
+                    <div class="feature-title">Files</div>
+                    <div class="feature-subtitle">Browse files</div>
+                </div>
+
+                <div class="feature-card" onclick="openUrl()">
+                    <div class="feature-icon bg-success bg-opacity-10">
+                        <i class="bi bi-link-45deg text-success"></i>
+                    </div>
+                    <div class="feature-title">Open URL</div>
+                    <div class="feature-subtitle">Launch browser</div>
+                </div>
+            </div>
+
+            <!-- Status Bar -->
+            <div class="status-bar">
+                <div class="d-flex align-items-center gap-3">
+                    <span id="statusText" class="text-muted small">Ready</span>
+                </div>
+                <div class="text-muted small">
+                    <span id="pairCode">Pair Code: Loading...</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Pairing Section -->
+    <div id="pairingSection" class="desktop-bg d-none">
+        <div class="desktop-window" style="max-width: 600px;">
+            <div class="title-bar">
+                <h5 class="mb-0">📱 Pair Your Device</h5>
+            </div>
+            <div class="p-5 text-center">
+                <h1 class="display-1 fw-bold mb-3" id="displayPairCode">------</h1>
+                <p class="lead mb-4">Enter this code in your Android app</p>
+                <button id="btnRefreshCode" class="btn btn-outline-primary">
+                    <i class="bi bi-arrow-clockwise"></i> Refresh Code
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modals -->
+    <div class="modal fade" id="smsModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Send SMS</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <input type="tel" id="smsPhoneNumber" class="form-control" placeholder="+628123456789">
+                    </div>
+                    <div class="mb-3">
+                        <textarea id="smsMessage" class="form-control" rows="4" placeholder="Type message..."></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" id="btnSendSmsSubmit" class="btn btn-primary">Send</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="urlModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Open URL</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="url" id="urlInput" class="form-control" placeholder="https://example.com">
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" id="btnSendUrl" class="btn btn-success">Open</button>
+                </div>
             </div>
         </div>
     </div>
@@ -275,6 +335,7 @@
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
 
     <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
@@ -282,5 +343,23 @@
     <!-- Custom JS -->
     <script src="js/firebase-config.js"></script>
     <script src="js/app.js"></script>
+    
+    <script>
+        // Quick access functions
+        function ringPhone() { sendCommand('ring_phone', {}); }
+        function getLocation() { sendCommand('get_location', {}); }
+        function startCamera() { 
+            const camera = confirm('Use Front camera?') ? 'front' : 'back';
+            startCameraStream(camera); 
+        }
+        function readMessages() { sendCommand('get_sms_messages', { limit: 20 }); }
+        function sendMessage() { new bootstrap.Modal(document.getElementById('smsModal')).show(); }
+        function getCallLogs() { sendCommand('get_call_logs', { limit: 20 }); }
+        function browseFiles() { 
+            const path = prompt('Enter path:', '/sdcard/DCIM') || '/sdcard/DCIM';
+            sendCommand('list_files', { path }); 
+        }
+        function openUrl() { new bootstrap.Modal(document.getElementById('urlModal')).show(); }
+    </script>
 </body>
 </html>

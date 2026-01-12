@@ -557,8 +557,26 @@ function showCommandResult(result) {
     const resultEl = document.getElementById('commandResult');
     const resultText = document.getElementById('commandResultText');
     
+    // Special handling for file downloads
+    if (result.data && result.filename) {
+        const isImage = result.mimeType && result.mimeType.startsWith('image/');
+        let output = '<div class="mb-3">';
+        output += `<h6>${result.filename} <span class="badge bg-info">${formatFileSize(result.size)}</span></h6>`;
+        
+        if (isImage) {
+            output += `<img src="data:${result.mimeType};base64,${result.data}" class="img-fluid rounded mb-2" style="max-width:100%;max-height:400px;">`;
+        }
+        
+        output += `<div class="d-grid">
+            <a href="data:${result.mimeType};base64,${result.data}" download="${result.filename}" class="btn btn-primary">
+                <i class="bi bi-download"></i> Download ${result.filename}
+            </a>
+        </div>`;
+        output += '</div>';
+        resultText.innerHTML = output;
+    }
     // Special handling for images (take_photo, download_file with image)
-    if (result.image) {
+    else if (result.image) {
         const { image, ...rest } = result;
         let output = '<div class="mb-3">';
         output += `<img src="data:image/jpeg;base64,${image}" class="img-fluid rounded" style="max-width:100%;max-height:400px;"><br>`;
@@ -582,13 +600,22 @@ function showCommandResult(result) {
     }
     // Special handling for file lists
     else if (result.files && Array.isArray(result.files)) {
-        let output = `<div class="mb-2"><strong>Path:</strong> ${result.path}</div>`;
-        output += `<div class="mb-2"><strong>Files:</strong> ${result.count}</div>`;
+        let output = `<div class="mb-3">
+            <div class="d-flex justify-content-between align-items-center">
+                <div><strong>Path:</strong> <code>${result.path}</code></div>
+                <div><span class="badge bg-primary">${result.count} items</span></div>
+            </div>
+        </div>`;
         output += '<div class="list-group">';
         result.files.forEach(file => {
             const icon = file.isDirectory ? '📁' : '📄';
-            const size = file.isDirectory ? '' : ` (${formatFileSize(file.size)})`;
-            output += `<div class="list-group-item">${icon} <strong>${file.name}</strong>${size}</div>`;
+            const size = file.isDirectory ? '' : ` <span class="badge bg-secondary">${formatFileSize(file.size)}</span>`;
+            const clickAction = file.isDirectory 
+                ? `onclick="sendCommand('list_files', { path: '${file.path}' })"` 
+                : `onclick="sendCommand('download_file', { path: '${file.path}' })"`;
+            output += `<a href="#" class="list-group-item list-group-item-action" ${clickAction}>
+                ${icon} <strong>${file.name}</strong>${size}
+            </a>`;
         });
         output += '</div>';
         resultText.innerHTML = output;
@@ -617,14 +644,19 @@ async function startCameraStream(camera) {
         return;
     }
     
-    showCommandStatus(`Starting ${camera} camera stream...`);
+    // Show stream card immediately
+    document.getElementById('cameraStreamCard').classList.remove('d-none');
+    document.getElementById('streamInfo').textContent = `Starting ${camera} camera...`;
     
     try {
         // Send start command
-        await sendCommand('start_camera_stream', { camera });
+        const result = await sendCommand('start_camera_stream', { camera });
         
-        // Show stream card
-        document.getElementById('cameraStreamCard').classList.remove('d-none');
+        if (!result || result.message !== "Camera stream started") {
+            throw new Error('Failed to start camera stream');
+        }
+        
+        showCommandStatus(`Camera stream starting (${camera})...`, 'info');
         
         // Listen to Firebase Realtime Database for frames
         const database = firebase.database();
@@ -638,19 +670,21 @@ async function startCameraStream(camera) {
                 
                 // Update info
                 const timestamp = new Date(data.timestamp).toLocaleTimeString();
-                document.getElementById('streamInfo').textContent = 
-                    `Frame ${data.frameNumber} | ${data.camera} camera | ${timestamp}`;
+                document.getElementById('streamInfo').innerHTML = 
+                    `<span class="badge bg-success">● LIVE</span> Frame ${data.frameNumber} | ${data.camera} camera | ${timestamp}`;
             } else if (data && !data.active) {
                 // Stream stopped
                 stopCameraStream();
             }
         });
         
-        showCommandStatus(`Camera stream active (${camera})`, 'success');
+        // Don't show result in command result card
+        document.getElementById('commandResult').classList.add('d-none');
         
     } catch (error) {
         console.error('Start camera stream error:', error);
         showCommandStatus(`Failed to start stream: ${error.message}`, 'danger');
+        document.getElementById('cameraStreamCard').classList.add('d-none');
     }
 }
 
