@@ -7,28 +7,193 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
     <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
         body {
-            background: #f8f9fa;
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-        }
-        
-        .desktop-bg {
-            min-height: 100vh;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            padding: 20px;
-        }
-        
-        .desktop-window {
-            background: white;
-            border-radius: 15px;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
             overflow: hidden;
-            max-width: 1400px;
-            margin: 0 auto;
+            height: 100vh;
+            background: 
+                linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%),
+                repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(255,255,255,.03) 10px, rgba(255,255,255,.03) 20px),
+                linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            background-attachment: fixed;
         }
         
-        .title-bar {
-            background: linear-gradient(to right, #667eea, #764ba2);
+        /* Login Overlay */
+        #loginOverlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            z-index: 9999;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .login-box {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            max-width: 400px;
+            width: 90%;
+        }
+        
+        .login-box h2 {
+            color: #667eea;
+            margin-bottom: 30px;
+            font-weight: 700;
+        }
+        
+        /* Desktop Container */
+        #desktopContainer {
+            display: none;
+            height: 100vh;
+            flex-direction: column;
+        }
+        
+        /* Top Bar */
+        .top-bar {
+            background: rgba(0, 0, 0, 0.4);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 12px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            color: white;
+        }
+        
+        .top-bar-left {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        .logo {
+            font-size: 20px;
+            font-weight: 700;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .device-status {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            font-size: 14px;
+        }
+        
+        .status-item {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        
+        .status-badge {
+            background: rgba(34, 197, 94, 0.2);
+            color: #22c55e;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        
+        .top-bar-right {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        /* Main Layout */
+        .main-layout {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+        }
+        
+        /* Sidebar */
+        .sidebar {
+            width: 80px;
+            background: rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(10px);
+            border-right: 1px solid rgba(255, 255, 255, 0.1);
+            display: flex;
+            flex-direction: column;
+            padding: 20px 0;
+            gap: 10px;
+        }
+        
+        .sidebar-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 15px 10px;
+            color: rgba(255, 255, 255, 0.6);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border-left: 3px solid transparent;
+            gap: 5px;
+        }
+        
+        .sidebar-item:hover {
+            background: rgba(255, 255, 255, 0.05);
+            color: white;
+        }
+        
+        .sidebar-item.active {
+            background: rgba(102, 126, 234, 0.2);
+            color: #667eea;
+            border-left-color: #667eea;
+        }
+        
+        .sidebar-item i {
+            font-size: 24px;
+        }
+        
+        .sidebar-item span {
+            font-size: 11px;
+            margin-top: 5px;
+        }
+        
+        /* Content Area */
+        .content-area {
+            flex: 1;
+            padding: 30px;
+            overflow-y: auto;
+        }
+        
+        .content-section {
+            display: none;
+        }
+        
+        .content-section.active {
+            display: block;
+        }
+        
+        /* Window Card */
+        .window-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+            overflow: hidden;
+            margin-bottom: 20px;
+        }
+        
+        .window-header {
+            background: linear-gradient(135deg, #667eea, #764ba2);
             color: white;
             padding: 15px 20px;
             display: flex;
@@ -36,266 +201,463 @@
             align-items: center;
         }
         
-        .feature-grid {
-            padding: 30px;
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-            gap: 20px;
-        }
-        
-        .feature-card {
-            background: white;
-            border: 2px solid #e9ecef;
-            border-radius: 15px;
-            padding: 20px;
-            text-align: center;
-            transition: all 0.3s;
-            cursor: pointer;
-        }
-        
-        .feature-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
-            border-color: #667eea;
-        }
-        
-        .feature-icon {
-            width: 80px;
-            height: 80px;
-            margin: 0 auto 15px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            border-radius: 50%;
-            font-size: 2.5rem;
-        }
-        
-        .feature-title {
-            font-size: 14px;
+        .window-header h3 {
+            font-size: 18px;
             font-weight: 600;
-            margin-bottom: 5px;
+            margin: 0;
         }
         
-        .feature-subtitle {
-            font-size: 11px;
-            color: #6c757d;
+        .window-body {
+            padding: 25px;
         }
         
-        .status-bar {
-            background: #f8f9fa;
-            padding: 15px 20px;
-            border-top: 1px solid #dee2e6;
+        /* Camera Section */
+        .camera-controls {
             display: flex;
-            justify-content: space-between;
-            align-items: center;
+            gap: 15px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
         }
         
-        .result-panel {
-            background: white;
+        .camera-toggle {
+            display: flex;
+            background: rgba(102, 126, 234, 0.1);
             border-radius: 10px;
-            padding: 20px;
-            margin: 20px;
-            display: none;
+            padding: 5px;
         }
         
-        .result-panel.show {
-            display: block;
+        .camera-toggle-btn {
+            padding: 10px 20px;
+            border: none;
+            background: transparent;
+            color: #667eea;
+            font-weight: 600;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
         }
         
-        .stream-panel {
+        .camera-toggle-btn.active {
+            background: #667eea;
+            color: white;
+        }
+        
+        .stream-container {
             background: #000;
             border-radius: 10px;
-            padding: 20px;
-            margin: 20px;
-            display: none;
-        }
-        
-        .stream-panel.show {
-            display: block;
-        }
-        
-        .login-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0,0,0,0.8);
+            overflow: hidden;
+            position: relative;
+            min-height: 400px;
             display: flex;
             align-items: center;
             justify-content: center;
-            z-index: 9999;
         }
         
-        .login-box {
+        .stream-placeholder {
+            color: rgba(255, 255, 255, 0.5);
+            text-align: center;
+        }
+        
+        #cameraStreamImage {
+            width: 100%;
+            height: auto;
+            display: none;
+        }
+        
+        .stream-info {
+            position: absolute;
+            top: 15px;
+            left: 15px;
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 8px 15px;
+            border-radius: 20px;
+            font-size: 12px;
+            display: none;
+        }
+        
+        .live-badge {
+            display: inline-block;
+            background: #ef4444;
+            color: white;
+            padding: 3px 8px;
+            border-radius: 3px;
+            font-weight: 600;
+            margin-right: 8px;
+        }
+        
+        /* Quick Actions Grid */
+        .quick-actions {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 15px;
+        }
+        
+        .action-card {
+            background: white;
+            border: 2px solid #e9ecef;
+            border-radius: 12px;
+            padding: 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .action-card:hover {
+            border-color: #667eea;
+            transform: translateY(-3px);
+            box-shadow: 0 5px 20px rgba(102, 126, 234, 0.2);
+        }
+        
+        .action-card i {
+            font-size: 36px;
+            color: #667eea;
+            margin-bottom: 10px;
+        }
+        
+        .action-card h4 {
+            font-size: 14px;
+            font-weight: 600;
+            margin: 0;
+            color: #333;
+        }
+        
+        /* Device Info Panel */
+        .device-info {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+        }
+        
+        .info-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 12px 0;
+            border-bottom: 1px solid #f0f0f0;
+        }
+        
+        .info-item:last-child {
+            border-bottom: none;
+        }
+        
+        /* Result Panel */
+        #resultPanel {
+            display: none;
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            width: 400px;
+            max-height: 500px;
             background: white;
             border-radius: 15px;
-            padding: 40px;
-            max-width: 400px;
-            width: 90%;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+            overflow: hidden;
+            z-index: 1000;
+        }
+        
+        #resultPanel .window-header {
+            cursor: move;
+        }
+        
+        #resultPanel .window-body {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        
+        /* Buttons */
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            border: none;
+            padding: 10px 25px;
+            border-radius: 8px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+        }
+        
+        .btn-danger {
+            background: #ef4444;
+            border: none;
+        }
+        
+        .btn-success {
+            background: #22c55e;
+            border: none;
+        }
+        
+        /* Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        
+        ::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.1);
+        }
+        
+        ::-webkit-scrollbar-thumb {
+            background: rgba(102, 126, 234, 0.5);
+            border-radius: 4px;
+        }
+        
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(102, 126, 234, 0.8);
+        }
+        
+        /* Responsive */
+        @media (max-width: 768px) {
+            .sidebar {
+                width: 60px;
+            }
+            
+            .sidebar-item span {
+                display: none;
+            }
+            
+            .content-area {
+                padding: 15px;
+            }
+            
+            #resultPanel {
+                width: calc(100% - 40px);
+                right: 20px;
+            }
         }
     </style>
 </head>
 <body>
     <!-- Login Overlay -->
-    <div id="loginOverlay" class="login-overlay">
+    <div id="loginOverlay">
         <div class="login-box">
-            <h3 class="text-center mb-4">📱 MyPhoneBridge</h3>
+            <h2><i class="bi bi-phone"></i> MyPhoneBridge</h2>
             <div class="mb-3">
-                <input type="email" id="loginEmail" class="form-control" placeholder="Email">
+                <label class="form-label">Email</label>
+                <input type="email" class="form-control" id="emailInput" placeholder="your@email.com">
             </div>
             <div class="mb-3">
-                <input type="password" id="loginPassword" class="form-control" placeholder="Password">
+                <label class="form-label">Password</label>
+                <input type="password" class="form-control" id="passwordInput" placeholder="••••••••">
             </div>
-            <button id="btnLogin" class="btn btn-primary w-100 mb-3">Sign In</button>
-            <button id="btnGoogleLogin" class="btn btn-outline-dark w-100">
-                <i class="bi bi-google"></i> Sign in with Google
+            <button class="btn btn-primary w-100 mb-3" id="btnLogin">
+                <i class="bi bi-box-arrow-in-right"></i> Sign In
             </button>
-            <div id="loginError" class="alert alert-danger d-none mt-3"></div>
-        </div>
-    </div>
-
-    <!-- Desktop Interface -->
-    <div id="dashboardSection" class="desktop-bg d-none">
-        <div class="desktop-window">
-            <!-- Title Bar -->
-            <div class="title-bar">
-                <div>
-                    <h5 class="mb-0">📱 MyPhoneBridge Remote Desktop</h5>
-                    <small class="opacity-75">Control your Android device remotely</small>
-                </div>
-                <div class="d-flex align-items-center gap-3">
-                    <div id="deviceStatus" class="d-flex align-items-center gap-2">
-                        <span class="badge bg-success"><i class="bi bi-circle-fill"></i> Connected</span>
-                        <span id="batteryStatus">--</span>
-                    </div>
-                    <button id="btnSignOut" class="btn btn-sm btn-light"><i class="bi bi-box-arrow-right"></i></button>
-                </div>
-            </div>
-
-            <!-- Camera Stream Panel -->
-            <div id="streamPanel" class="stream-panel">
-                <div class="d-flex justify-content-between align-items-center mb-3">
-                    <div class="text-white">
-                        <h6 class="mb-0">Live Camera Stream</h6>
-                        <small id="streamInfo" class="text-white-50">Connecting...</small>
-                    </div>
-                    <button id="btnStopStream" class="btn btn-sm btn-danger">Stop Stream</button>
-                </div>
-                <img id="cameraStreamImage" src="" class="img-fluid rounded" style="max-width:100%;">
-            </div>
-
-            <!-- Result Panel -->
-            <div id="resultPanel" class="result-panel">
-                <div class="d-flex justify-content-between align-items-center mb-3">
-                    <h6 class="mb-0"><i class="bi bi-terminal"></i> Result</h6>
-                    <button class="btn btn-sm btn-close" onclick="document.getElementById('resultPanel').classList.remove('show')"></button>
-                </div>
-                <div id="resultContent"></div>
-            </div>
-
-            <!-- Feature Grid -->
-            <div class="feature-grid">
-                <div class="feature-card" onclick="ringPhone()">
-                    <div class="feature-icon bg-danger bg-opacity-10">
-                        <i class="bi bi-bell-fill text-danger"></i>
-                    </div>
-                    <div class="feature-title">Ring Phone</div>
-                    <div class="feature-subtitle">Find device</div>
-                </div>
-
-                <div class="feature-card" onclick="getLocation()">
-                    <div class="feature-icon bg-primary bg-opacity-10">
-                        <i class="bi bi-geo-alt-fill text-primary"></i>
-                    </div>
-                    <div class="feature-title">Location</div>
-                    <div class="feature-subtitle">Track device</div>
-                </div>
-
-                <div class="feature-card" onclick="startCamera()">
-                    <div class="feature-icon bg-purple bg-opacity-10">
-                        <i class="bi bi-camera-video-fill" style="color: #764ba2;"></i>
-                    </div>
-                    <div class="feature-title">Camera</div>
-                    <div class="feature-subtitle">Live stream</div>
-                </div>
-
-                <div class="feature-card" onclick="readMessages()">
-                    <div class="feature-icon bg-secondary bg-opacity-10">
-                        <i class="bi bi-envelope-fill text-secondary"></i>
-                    </div>
-                    <div class="feature-title">Messages</div>
-                    <div class="feature-subtitle">Read SMS</div>
-                </div>
-
-                <div class="feature-card" onclick="sendMessage()">
-                    <div class="feature-icon bg-info bg-opacity-10">
-                        <i class="bi bi-chat-dots-fill text-info"></i>
-                    </div>
-                    <div class="feature-title">Send SMS</div>
-                    <div class="feature-subtitle">New message</div>
-                </div>
-
-                <div class="feature-card" onclick="getCallLogs()">
-                    <div class="feature-icon bg-warning bg-opacity-10">
-                        <i class="bi bi-telephone-fill text-warning"></i>
-                    </div>
-                    <div class="feature-title">Call Logs</div>
-                    <div class="feature-subtitle">Recent calls</div>
-                </div>
-
-                <div class="feature-card" onclick="browseFiles()">
-                    <div class="feature-icon bg-success bg-opacity-10">
-                        <i class="bi bi-folder-fill text-success"></i>
-                    </div>
-                    <div class="feature-title">Files</div>
-                    <div class="feature-subtitle">Browse files</div>
-                </div>
-
-                <div class="feature-card" onclick="openUrl()">
-                    <div class="feature-icon bg-success bg-opacity-10">
-                        <i class="bi bi-link-45deg text-success"></i>
-                    </div>
-                    <div class="feature-title">Open URL</div>
-                    <div class="feature-subtitle">Launch browser</div>
-                </div>
-            </div>
-
-            <!-- Status Bar -->
-            <div class="status-bar">
-                <div class="d-flex align-items-center gap-3">
-                    <span id="statusText" class="text-muted small">Ready</span>
-                </div>
-                <div class="text-muted small">
-                    <span id="pairCode">Pair Code: Loading...</span>
-                </div>
+            <div class="text-center">
+                <button class="btn btn-outline-secondary w-100" id="btnGoogleLogin">
+                    <i class="bi bi-google"></i> Sign in with Google
+                </button>
             </div>
         </div>
     </div>
 
-    <!-- Pairing Section -->
-    <div id="pairingSection" class="desktop-bg d-none">
-        <div class="desktop-window" style="max-width: 600px;">
-            <div class="title-bar">
-                <h5 class="mb-0">📱 Pair Your Device</h5>
-            </div>
-            <div class="p-5 text-center">
-                <h1 class="display-1 fw-bold mb-3" id="displayPairCode">------</h1>
-                <p class="lead mb-4">Enter this code in your Android app</p>
-                <div class="d-flex gap-2 justify-content-center">
-                    <button id="btnRefreshCode" class="btn btn-outline-primary">
-                        <i class="bi bi-arrow-clockwise"></i> Refresh Code
-                    </button>
-                    <button id="btnSkipPairing" class="btn btn-success">
-                        <i class="bi bi-check-circle"></i> Already Paired? Skip
-                    </button>
+    <!-- Desktop Container -->
+    <div id="desktopContainer">
+        <!-- Top Bar -->
+        <div class="top-bar">
+            <div class="top-bar-left">
+                <div class="logo">
+                    <i class="bi bi-phone"></i> MyPhoneBridge
                 </div>
-                <p class="text-muted mt-3 small">If you've already paired your device, click "Skip" to go directly to dashboard</p>
+                <div class="device-status">
+                    <span class="status-badge">
+                        <i class="bi bi-circle-fill"></i> Connected
+                    </span>
+                    <div class="status-item" id="batteryStatus">
+                        <i class="bi bi-battery-charging"></i>
+                        <span>--</span>
+                    </div>
+                </div>
+            </div>
+            <div class="top-bar-right">
+                <button class="btn btn-sm btn-outline-light" id="btnSignOut">
+                    <i class="bi bi-box-arrow-right"></i> Sign Out
+                </button>
+            </div>
+        </div>
+
+        <!-- Main Layout -->
+        <div class="main-layout">
+            <!-- Sidebar -->
+            <div class="sidebar">
+                <div class="sidebar-item active" data-section="camera">
+                    <i class="bi bi-camera-video"></i>
+                    <span>Camera</span>
+                </div>
+                <div class="sidebar-item" data-section="messages">
+                    <i class="bi bi-chat-dots"></i>
+                    <span>Messages</span>
+                </div>
+                <div class="sidebar-item" data-section="files">
+                    <i class="bi bi-folder"></i>
+                    <span>Files</span>
+                </div>
+                <div class="sidebar-item" data-section="calls">
+                    <i class="bi bi-telephone"></i>
+                    <span>Calls</span>
+                </div>
+                <div class="sidebar-item" data-section="control">
+                    <i class="bi bi-gear"></i>
+                    <span>Control</span>
+                </div>
+                <div class="sidebar-item" data-section="device">
+                    <i class="bi bi-phone"></i>
+                    <span>Device</span>
+                </div>
+            </div>
+
+            <!-- Content Area -->
+            <div class="content-area">
+                <!-- Camera Section -->
+                <div class="content-section active" id="cameraSection">
+                    <div class="window-card">
+                        <div class="window-header">
+                            <h3><i class="bi bi-camera-video"></i> Live Camera</h3>
+                        </div>
+                        <div class="window-body">
+                            <div class="camera-controls">
+                                <div class="camera-toggle">
+                                    <button class="camera-toggle-btn active" data-camera="front">
+                                        <i class="bi bi-person"></i> Front
+                                    </button>
+                                    <button class="camera-toggle-btn" data-camera="back">
+                                        <i class="bi bi-camera"></i> Back
+                                    </button>
+                                </div>
+                                <button class="btn btn-primary" id="btnStartStream">
+                                    <i class="bi bi-play-circle"></i> Start Stream
+                                </button>
+                                <button class="btn btn-danger" id="btnStopStream" style="display: none;">
+                                    <i class="bi bi-stop-circle"></i> Stop Stream
+                                </button>
+                            </div>
+                            <div class="stream-container">
+                                <div class="stream-placeholder">
+                                    <i class="bi bi-camera-video" style="font-size: 48px;"></i>
+                                    <p>Click "Start Stream" to begin</p>
+                                </div>
+                                <img id="cameraStreamImage" alt="Camera Stream">
+                                <div class="stream-info" id="streamInfo">
+                                    <span class="live-badge">LIVE</span>
+                                    <span id="streamDetails">Frame 0 | front</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Messages Section -->
+                <div class="content-section" id="messagesSection">
+                    <div class="window-card">
+                        <div class="window-header">
+                            <h3><i class="bi bi-chat-dots"></i> Messages</h3>
+                        </div>
+                        <div class="window-body">
+                            <button class="btn btn-primary mb-3" id="btnGetMessages">
+                                <i class="bi bi-inbox"></i> Get Messages
+                            </button>
+                            <button class="btn btn-success mb-3" data-bs-toggle="modal" data-bs-target="#smsModal">
+                                <i class="bi bi-send"></i> Send SMS
+                            </button>
+                            <div id="messagesContent"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Files Section -->
+                <div class="content-section" id="filesSection">
+                    <div class="window-card">
+                        <div class="window-header">
+                            <h3><i class="bi bi-folder"></i> File Manager</h3>
+                        </div>
+                        <div class="window-body">
+                            <button class="btn btn-primary mb-3" id="btnGetFiles">
+                                <i class="bi bi-folder2-open"></i> Browse Files
+                            </button>
+                            <div id="filesContent"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Calls Section -->
+                <div class="content-section" id="callsSection">
+                    <div class="window-card">
+                        <div class="window-header">
+                            <h3><i class="bi bi-telephone"></i> Call Logs</h3>
+                        </div>
+                        <div class="window-body">
+                            <button class="btn btn-primary mb-3" id="btnGetCallLogs">
+                                <i class="bi bi-clock-history"></i> Get Call Logs
+                            </button>
+                            <div id="callsContent"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Control Section -->
+                <div class="content-section" id="controlSection">
+                    <div class="window-card">
+                        <div class="window-header">
+                            <h3><i class="bi bi-gear"></i> Remote Control</h3>
+                        </div>
+                        <div class="window-body">
+                            <div class="quick-actions">
+                                <div class="action-card" id="btnRingPhone">
+                                    <i class="bi bi-bell"></i>
+                                    <h4>Ring Phone</h4>
+                                </div>
+                                <div class="action-card" id="btnGetLocation">
+                                    <i class="bi bi-geo-alt"></i>
+                                    <h4>Get Location</h4>
+                                </div>
+                                <div class="action-card" data-bs-toggle="modal" data-bs-target="#urlModal">
+                                    <i class="bi bi-link-45deg"></i>
+                                    <h4>Open URL</h4>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Device Section -->
+                <div class="content-section" id="deviceSection">
+                    <div class="window-card">
+                        <div class="window-header">
+                            <h3><i class="bi bi-phone"></i> Device Information</h3>
+                        </div>
+                        <div class="window-body">
+                            <div class="device-info" id="deviceInfo">
+                                <div class="info-item">
+                                    <span>Battery</span>
+                                    <strong>Loading...</strong>
+                                </div>
+                                <div class="info-item">
+                                    <span>Status</span>
+                                    <strong>Connected</strong>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
 
-    <!-- Modals -->
+    <!-- Result Panel (Floating) -->
+    <div id="resultPanel">
+        <div class="window-header">
+            <h3><i class="bi bi-info-circle"></i> Result</h3>
+            <button class="btn btn-sm btn-light" id="btnCloseResult">
+                <i class="bi bi-x"></i>
+            </button>
+        </div>
+        <div class="window-body">
+            <div id="resultContent"></div>
+        </div>
+    </div>
+
+    <!-- SMS Modal -->
     <div class="modal fade" id="smsModal" tabindex="-1">
         <div class="modal-dialog">
             <div class="modal-content">
@@ -305,20 +667,23 @@
                 </div>
                 <div class="modal-body">
                     <div class="mb-3">
-                        <input type="tel" id="smsPhoneNumber" class="form-control" placeholder="+628123456789">
+                        <label class="form-label">Phone Number</label>
+                        <input type="tel" class="form-control" id="smsPhoneNumber" placeholder="+1234567890">
                     </div>
                     <div class="mb-3">
-                        <textarea id="smsMessage" class="form-control" rows="4" placeholder="Type message..."></textarea>
+                        <label class="form-label">Message</label>
+                        <textarea class="form-control" id="smsMessage" rows="3"></textarea>
                     </div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="button" id="btnSendSmsSubmit" class="btn btn-primary">Send</button>
+                    <button type="button" class="btn btn-primary" id="btnSendSMS">Send</button>
                 </div>
             </div>
         </div>
     </div>
 
+    <!-- URL Modal -->
     <div class="modal fade" id="urlModal" tabindex="-1">
         <div class="modal-dialog">
             <div class="modal-content">
@@ -327,45 +692,26 @@
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
-                    <input type="url" id="urlInput" class="form-control" placeholder="https://example.com">
+                    <div class="mb-3">
+                        <label class="form-label">URL</label>
+                        <input type="url" class="form-control" id="urlInput" placeholder="https://example.com">
+                    </div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="button" id="btnSendUrl" class="btn btn-success">Open</button>
+                    <button type="button" class="btn btn-primary" id="btnOpenURL">Open</button>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Firebase SDK -->
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
-
-    <!-- Bootstrap JS -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-
-    <!-- Custom JS -->
     <script src="js/firebase-config.js"></script>
-    <script src="js/app.js"></script>
-    
-    <script>
-        // Quick access functions
-        function ringPhone() { sendCommand('ring_phone', {}); }
-        function getLocation() { sendCommand('get_location', {}); }
-        function startCamera() { 
-            const camera = confirm('Use Front camera?') ? 'front' : 'back';
-            startCameraStream(camera); 
-        }
-        function readMessages() { sendCommand('get_sms_messages', { limit: 20 }); }
-        function sendMessage() { new bootstrap.Modal(document.getElementById('smsModal')).show(); }
-        function getCallLogs() { sendCommand('get_call_logs', { limit: 20 }); }
-        function browseFiles() { 
-            const path = prompt('Enter path:', '/sdcard/DCIM') || '/sdcard/DCIM';
-            sendCommand('list_files', { path }); 
-        }
-        function openUrl() { new bootstrap.Modal(document.getElementById('urlModal')).show(); }
-    </script>
+    <script src="js/app-desktop.js"></script>
 </body>
 </html>

