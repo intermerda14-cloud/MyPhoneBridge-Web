@@ -102,9 +102,9 @@ auth.onAuthStateChanged(async (user) => {
         document.getElementById('loginOverlay').style.display = 'none';
         document.getElementById('desktopContainer').style.display = 'flex';
 
-        // Auto-update battery
-        updateBatteryStatus();
-        setInterval(updateBatteryStatus, 5 * 60 * 1000); // Every 5 minutes
+        // Auto-update battery (wait 2 seconds for device to register)
+        setTimeout(updateBatteryStatus, 2000);
+        setInterval(updateBatteryStatus, 5 * 60 * 1000);
 
     } else {
         currentUserId = null;
@@ -317,6 +317,8 @@ function formatFileSize(bytes) {
 }
 
 async function updateBatteryStatus() {
+    if (!currentUserId) return; // Don't run if not logged in
+
     try {
         const result = await sendCommand('get_battery_info');
         if (result && result.level !== undefined) {
