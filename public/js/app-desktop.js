@@ -28,7 +28,7 @@ function setupEventListeners() {
     });
 
     document.getElementById('btnStartStream')?.addEventListener('click', () => startCameraStream(currentCamera));
-    document.getElementById('btnStopStream')?.addEventListener('click', stopCameraStream);
+    document.getElementById('btnStopStream')?.addEventListener('click', () => stopCameraStream()); // <-- FIXED: Add arrow function
 
     // Quick actions
     document.getElementById('btnRingPhone')?.addEventListener('click', ringPhone);
