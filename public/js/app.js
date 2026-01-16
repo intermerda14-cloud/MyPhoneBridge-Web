@@ -2,7 +2,6 @@
 let currentUserId = null;
 let currentCamera = 'front';
 let streamListener = null;
-let isLoading = false;
 
 // Setup event listeners
 function setupEventListeners() {
@@ -29,7 +28,7 @@ function setupEventListeners() {
     });
     
     document.getElementById('btnStartStream')?.addEventListener('click', () => startCameraStream(currentCamera));
-    document.getElementById('btnStopStream')?.addEventListener('click', () => stopCameraStream());
+    document.getElementById('btnStopStream')?.addEventListener('click', stopCameraStream);
     
     // Quick actions
     document.getElementById('btnRingPhone')?.addEventListener('click', ringPhone);
@@ -48,23 +47,15 @@ function setupEventListeners() {
     });
 }
 
-// Loading indicator
-function showLoading(show, message = 'Processing command...') {
-    const spinner = document.getElementById('loadingSpinner');
-    if (spinner) {
-        spinner.style.display = show ? 'flex' : 'none';
-        const msg = spinner.querySelector('p');
-        if (msg) msg.textContent = message;
-    }
-}
-
 // Switch sections
 function switchSection(section) {
+    // Update sidebar
     document.querySelectorAll('.sidebar-item').forEach(item => {
         item.classList.remove('active');
     });
     document.querySelector(`[data-section="${section}"]`)?.classList.add('active');
     
+    // Update content
     document.querySelectorAll('.content-section').forEach(sec => {
         sec.classList.remove('active');
     });
@@ -107,11 +98,13 @@ auth.onAuthStateChanged(async (user) => {
         currentUserId = user.uid;
         console.log('User logged in:', currentUserId);
         
+        // Hide login, show desktop
         document.getElementById('loginOverlay').style.display = 'none';
         document.getElementById('desktopContainer').style.display = 'flex';
         
-        setTimeout(updateBatteryStatus, 2000);
-        setInterval(updateBatteryStatus, 5 * 60 * 1000);
+        // Auto-update battery
+        updateBatteryStatus();
+        setInterval(updateBatteryStatus, 5 * 60 * 1000); // Every 5 minutes
         
     } else {
         currentUserId = null;
@@ -127,14 +120,6 @@ async function sendCommand(type, data = {}) {
         return null;
     }
     
-    if (isLoading) {
-        console.log('Already loading, please wait...');
-        return null;
-    }
-    
-    isLoading = true;
-    showLoading(true, `Sending ${type}...`);
-    
     try {
         const commandRef = firestore.collection('users')
             .doc(currentUserId)
@@ -149,21 +134,18 @@ async function sendCommand(type, data = {}) {
         });
         
         console.log('Command sent:', type);
-        showLoading(true, 'Waiting for response...');
         
+        // Wait for result
         return await waitForResult(commandRef);
         
     } catch (error) {
         console.error('Send command error:', error);
         showResult({ error: error.message });
         return null;
-    } finally {
-        isLoading = false;
-        showLoading(false);
     }
 }
 
-async function waitForResult(commandRef, timeout = 60000) {
+async function waitForResult(commandRef, timeout = 30000) {
     return new Promise((resolve, reject) => {
         const timer = setTimeout(() => {
             unsubscribe();
@@ -176,10 +158,6 @@ async function waitForResult(commandRef, timeout = 60000) {
                 clearTimeout(timer);
                 unsubscribe();
                 resolve(data.result);
-            } else if (data && data.status === 'failed') {
-                clearTimeout(timer);
-                unsubscribe();
-                reject(new Error(data.error || 'Command failed'));
             }
         });
     });
@@ -187,20 +165,19 @@ async function waitForResult(commandRef, timeout = 60000) {
 
 // Camera streaming
 async function startCameraStream(camera) {
-    console.log('Starting camera stream:', camera);
     try {
-        console.log('Sending command...');
         const result = await sendCommand('start_camera_stream', { camera });
-        console.log('Command result:', result);
         
         if (result) {
+            // Show stream UI
             document.querySelector('.stream-placeholder').style.display = 'none';
             document.getElementById('cameraStreamImage').style.display = 'block';
             document.getElementById('streamInfo').style.display = 'block';
             document.getElementById('btnStartStream').style.display = 'none';
             document.getElementById('btnStopStream').style.display = 'inline-block';
             
-            const database = firebase.database(firebase.app(), 'https://myphonebridge-default-rtdb.asia-southeast1.firebasedatabase.app');
+            // Listen for frames
+            const database = firebase.database();
             const streamRef = database.ref(`camera_streams/${currentUserId}`);
             
             streamListener = streamRef.on('value', (snapshot) => {
@@ -222,8 +199,9 @@ async function startCameraStream(camera) {
 
 async function stopCameraStream() {
     try {
+        // Stop listening
         if (streamListener) {
-            const database = firebase.database(firebase.app(), 'https://myphonebridge-default-rtdb.asia-southeast1.firebasedatabase.app');
+            const database = firebase.database();
             const streamRef = database.ref(`camera_streams/${currentUserId}`);
             streamRef.off('value', streamListener);
             streamListener = null;
@@ -231,6 +209,7 @@ async function stopCameraStream() {
         
         const result = await sendCommand('stop_camera_stream');
         
+        // Reset UI
         document.querySelector('.stream-placeholder').style.display = 'block';
         document.getElementById('cameraStreamImage').style.display = 'none';
         document.getElementById('streamInfo').style.display = 'none';
@@ -262,14 +241,6 @@ async function getLocation() {
 
 async function getMessages() {
     const result = await sendCommand('read_sms');
-    if (result) {
-        try {
-            const messages = JSON.parse(result.messages || '[]');
-            result.parsedMessages = messages;
-        } catch (e) {
-            console.error('Error parsing messages:', e);
-        }
-    }
     showResult(result);
 }
 
@@ -281,7 +252,7 @@ async function getCallLogs() {
 async function listFiles(path) {
     const result = await sendCommand('list_files', { path });
     if (result && result.files) {
-        displayFiles(JSON.parse(result.files), path);
+        displayFiles(result.files, path);
     } else {
         showResult(result);
     }
@@ -299,6 +270,7 @@ async function sendSMS() {
     const result = await sendCommand('send_sms', { phoneNumber: phone, message });
     showResult(result);
     
+    // Close modal
     bootstrap.Modal.getInstance(document.getElementById('smsModal'))?.hide();
 }
 
@@ -313,6 +285,7 @@ async function openURL() {
     const result = await sendCommand('open_url', { url });
     showResult(result);
     
+    // Close modal
     bootstrap.Modal.getInstance(document.getElementById('urlModal'))?.hide();
 }
 
@@ -346,6 +319,22 @@ function displayFiles(files, currentPath) {
 
 async function downloadFile(path) {
     const result = await sendCommand('download_file', { path });
+    if (result && result.data) {
+        // Show preview if image
+        if (result.mimeType && result.mimeType.startsWith('image/')) {
+            const img = `<img src="data:${result.mimeType};base64,${result.data}" class="img-fluid mb-3">`;
+            result.preview = img;
+        }
+        
+        // Add download button
+        result.downloadBtn = `
+            <a href="data:${result.mimeType};base64,${result.data}" 
+               download="${result.fileName}" 
+               class="btn btn-primary btn-sm">
+                <i class="bi bi-download"></i> Download ${result.fileName}
+            </a>
+        `;
+    }
     showResult(result);
 }
 
@@ -358,8 +347,6 @@ function formatFileSize(bytes) {
 }
 
 async function updateBatteryStatus() {
-    if (!currentUserId) return;
-    
     try {
         const result = await sendCommand('get_battery_info');
         if (result && result.level !== undefined) {
@@ -383,6 +370,12 @@ function showResult(result) {
         content.innerHTML = '<div class="alert alert-warning">No result</div>';
     } else if (result.error) {
         content.innerHTML = `<div class="alert alert-danger">${result.error}</div>`;
+    } else if (result.preview) {
+        content.innerHTML = result.preview + (result.downloadBtn || '');
+    } else if (result.mapsLink) {
+        content.innerHTML = `<pre>${JSON.stringify(result, null, 2)}</pre>${result.mapsLink}`;
+    } else if (result.downloadBtn) {
+        content.innerHTML = `<pre>${JSON.stringify(result, null, 2)}</pre>${result.downloadBtn}`;
     } else {
         content.innerHTML = `<pre>${JSON.stringify(result, null, 2)}</pre>`;
     }
