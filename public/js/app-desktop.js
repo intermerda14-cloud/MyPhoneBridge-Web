@@ -10,7 +10,7 @@ function setupEventListeners() {
     document.getElementById('btnLogin')?.addEventListener('click', signIn);
     document.getElementById('btnGoogleLogin')?.addEventListener('click', signInWithGoogle);
     document.getElementById('btnSignOut')?.addEventListener('click', signOut);
-    
+
     // Sidebar navigation
     document.querySelectorAll('.sidebar-item').forEach(item => {
         item.addEventListener('click', () => {
@@ -18,7 +18,7 @@ function setupEventListeners() {
             switchSection(section);
         });
     });
-    
+
     // Camera controls
     document.querySelectorAll('.camera-toggle-btn').forEach(btn => {
         btn.addEventListener('click', () => {
@@ -27,21 +27,21 @@ function setupEventListeners() {
             currentCamera = btn.dataset.camera;
         });
     });
-    
+
     document.getElementById('btnStartStream')?.addEventListener('click', () => startCameraStream(currentCamera));
     document.getElementById('btnStopStream')?.addEventListener('click', () => stopCameraStream());
-    
+
     // Quick actions
     document.getElementById('btnRingPhone')?.addEventListener('click', ringPhone);
     document.getElementById('btnGetLocation')?.addEventListener('click', getLocation);
     document.getElementById('btnGetMessages')?.addEventListener('click', getMessages);
     document.getElementById('btnGetCallLogs')?.addEventListener('click', getCallLogs);
     document.getElementById('btnGetFiles')?.addEventListener('click', () => listFiles('/storage/emulated/0'));
-    
+
     // Modals
     document.getElementById('btnSendSMS')?.addEventListener('click', sendSMS);
     document.getElementById('btnOpenURL')?.addEventListener('click', openURL);
-    
+
     // Result panel
     document.getElementById('btnCloseResult')?.addEventListener('click', () => {
         document.getElementById('resultPanel').style.display = 'none';
@@ -64,7 +64,7 @@ function switchSection(section) {
         item.classList.remove('active');
     });
     document.querySelector(`[data-section="${section}"]`)?.classList.add('active');
-    
+
     document.querySelectorAll('.content-section').forEach(sec => {
         sec.classList.remove('active');
     });
@@ -75,7 +75,7 @@ function switchSection(section) {
 async function signIn() {
     const email = document.getElementById('emailInput').value;
     const password = document.getElementById('passwordInput').value;
-    
+
     try {
         await auth.signInWithEmailAndPassword(email, password);
     } catch (error) {
@@ -106,13 +106,13 @@ auth.onAuthStateChanged(async (user) => {
     if (user) {
         currentUserId = user.uid;
         console.log('User logged in:', currentUserId);
-        
+
         document.getElementById('loginOverlay').style.display = 'none';
         document.getElementById('desktopContainer').style.display = 'flex';
-        
+
         setTimeout(updateBatteryStatus, 2000);
         setInterval(updateBatteryStatus, 5 * 60 * 1000);
-        
+
     } else {
         currentUserId = null;
         document.getElementById('loginOverlay').style.display = 'flex';
@@ -126,33 +126,33 @@ async function sendCommand(type, data = {}) {
         alert('Not logged in');
         return null;
     }
-    
+
     if (isLoading) {
         console.log('Already loading, please wait...');
         return null;
     }
-    
+
     isLoading = true;
     showLoading(true, `Sending ${type}...`);
-    
+
     try {
         const commandRef = firestore.collection('users')
             .doc(currentUserId)
             .collection('commands')
             .doc();
-        
+
         await commandRef.set({
             type: type,
             data: data,
             status: 'pending',
             createdAt: firebase.firestore.FieldValue.serverTimestamp()
         });
-        
+
         console.log('Command sent:', type);
         showLoading(true, 'Waiting for response...');
-        
+
         return await waitForResult(commandRef);
-        
+
     } catch (error) {
         console.error('Send command error:', error);
         showResult({ error: error.message });
@@ -169,7 +169,7 @@ async function waitForResult(commandRef, timeout = 60000) {
             unsubscribe();
             reject(new Error('Timeout'));
         }, timeout);
-        
+
         const unsubscribe = commandRef.onSnapshot((doc) => {
             const data = doc.data();
             if (data && data.status === 'completed') {
@@ -192,26 +192,26 @@ async function startCameraStream(camera) {
         console.log('Sending command...');
         const result = await sendCommand('start_camera_stream', { camera });
         console.log('Command result:', result);
-        
+
         if (result) {
             document.querySelector('.stream-placeholder').style.display = 'none';
             document.getElementById('cameraStreamImage').style.display = 'block';
             document.getElementById('streamInfo').style.display = 'block';
             document.getElementById('btnStartStream').style.display = 'none';
             document.getElementById('btnStopStream').style.display = 'inline-block';
-            
+
             const database = firebase.database(firebase.app(), 'https://myphonebridge-default-rtdb.asia-southeast1.firebasedatabase.app');
             const streamRef = database.ref(`camera_streams/${currentUserId}`);
-            
+
             streamListener = streamRef.on('value', (snapshot) => {
                 const data = snapshot.val();
-                if (data && data.active && data.frame) {
+                if (data && data.frame) {  // <-- REMOVED: active check
                     document.getElementById('cameraStreamImage').src = `data:image/jpeg;base64,${data.frame}`;
-                    document.getElementById('streamDetails').textContent = 
+                    document.getElementById('streamDetails').textContent =
                         `Frame ${data.frameNumber} | ${data.camera} | ${new Date(data.timestamp).toLocaleTimeString()}`;
                 }
             });
-            
+
             showResult(result);
         }
     } catch (error) {
@@ -228,15 +228,15 @@ async function stopCameraStream() {
             streamRef.off('value', streamListener);
             streamListener = null;
         }
-        
+
         const result = await sendCommand('stop_camera_stream');
-        
+
         document.querySelector('.stream-placeholder').style.display = 'block';
         document.getElementById('cameraStreamImage').style.display = 'none';
         document.getElementById('streamInfo').style.display = 'none';
         document.getElementById('btnStartStream').style.display = 'inline-block';
         document.getElementById('btnStopStream').style.display = 'none';
-        
+
         showResult(result);
     } catch (error) {
         console.error('Stop stream error:', error);
@@ -290,43 +290,43 @@ async function listFiles(path) {
 async function sendSMS() {
     const phone = document.getElementById('smsPhoneNumber').value;
     const message = document.getElementById('smsMessage').value;
-    
+
     if (!phone || !message) {
         alert('Please fill in all fields');
         return;
     }
-    
+
     const result = await sendCommand('send_sms', { phoneNumber: phone, message });
     showResult(result);
-    
+
     bootstrap.Modal.getInstance(document.getElementById('smsModal'))?.hide();
 }
 
 async function openURL() {
     const url = document.getElementById('urlInput').value;
-    
+
     if (!url) {
         alert('Please enter a URL');
         return;
     }
-    
+
     const result = await sendCommand('open_url', { url });
     showResult(result);
-    
+
     bootstrap.Modal.getInstance(document.getElementById('urlModal'))?.hide();
 }
 
 // Display functions
 function displayFiles(files, currentPath) {
     const container = document.getElementById('filesContent');
-    
+
     let html = `<div class="mb-3"><strong>Path:</strong> ${currentPath}</div>`;
     html += '<div class="list-group">';
-    
+
     files.forEach(file => {
         const icon = file.isDirectory ? 'bi-folder-fill' : 'bi-file-earmark';
         const color = file.isDirectory ? 'text-warning' : 'text-primary';
-        
+
         html += `
             <div class="list-group-item list-group-item-action d-flex justify-content-between align-items-center" 
                  onclick="${file.isDirectory ? `listFiles('${file.path}')` : `downloadFile('${file.path}')`}"
@@ -339,7 +339,7 @@ function displayFiles(files, currentPath) {
             </div>
         `;
     });
-    
+
     html += '</div>';
     container.innerHTML = html;
 }
@@ -359,7 +359,7 @@ function formatFileSize(bytes) {
 
 async function updateBatteryStatus() {
     if (!currentUserId) return;
-    
+
     try {
         const result = await sendCommand('get_battery_info');
         if (result && result.level !== undefined) {
@@ -378,7 +378,7 @@ async function updateBatteryStatus() {
 function showResult(result) {
     const panel = document.getElementById('resultPanel');
     const content = document.getElementById('resultContent');
-    
+
     if (!result) {
         content.innerHTML = '<div class="alert alert-warning">No result</div>';
     } else if (result.error) {
@@ -386,7 +386,7 @@ function showResult(result) {
     } else {
         content.innerHTML = `<pre>${JSON.stringify(result, null, 2)}</pre>`;
     }
-    
+
     panel.style.display = 'block';
 }
 
